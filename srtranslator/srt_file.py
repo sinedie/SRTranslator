@@ -129,7 +129,7 @@ class SrtFile:
             text = "\n".join(text)
 
             # Translate
-            logging.info(f"Translating chunk. {int(100 * progress / self.length)} %")
+            print(f"Translating chunk. {int(100 * progress / self.length)} %")
             translation = translator.translate(
                 text, source_language, destination_language
             )
