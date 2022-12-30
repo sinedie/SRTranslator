@@ -1,0 +1,5 @@
+geckodriver.log
+venv
+__pychache__
+*.pyc
+srt_test
