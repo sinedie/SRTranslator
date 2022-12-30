@@ -1,6 +1,5 @@
 import re
 import srt
-import logging
 
 from srt import Subtitle
 from typing import List, Generator
@@ -18,7 +17,7 @@ class SrtFile:
     def __init__(self, filepath: str) -> None:
         self.subtitles = []
         self.length = 0
-        logging.info(f"Loading {filepath}")
+        print(f"Loading {filepath}")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
             srt_file = srt.parse(input_file)
             subtitles = list(srt_file)
@@ -124,12 +123,13 @@ class SrtFile:
 
         # For each chunk of the file (based on the translator capabilities)
         for subs_slice in self._get_next_chunk(translator.max_char):
+            print(f"... Translating chunk. {int(100 * progress / self.length)} %")
+
             # Put chunk in a single text with break lines
             text = [sub.content for sub in subs_slice]
             text = "\n".join(text)
 
             # Translate
-            print(f"Translating chunk. {int(100 * progress / self.length)} %")
             translation = translator.translate(
                 text, source_language, destination_language
             )
@@ -141,13 +141,15 @@ class SrtFile:
 
             progress += len(text)
 
+        print(f"... Translation done")
+
     def save(self, filepath: str) -> None:
         """Saves SRT to file
 
         Args:
             filepath (str): Path of the new file
         """
-        logging.info(f"Saving {filepath}")
+        print(f"Saving {filepath}")
         subtitles = srt.compose(self.subtitles)
         with open(filepath, "w", encoding="utf-8") as file_out:
             file_out.write(subtitles)
