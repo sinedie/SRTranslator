@@ -25,8 +25,9 @@ class DeeplTranslator(Translator):
         "cs": "Czech",
         "da": "Danish",
         "nl": "Dutch",
-        "en-US": "English (American)",
-        "en-GB": "English (British)",
+        "en": "English",  # Only usable for source language
+        "en-US": "English (American)",  # Only usable for destination language
+        "en-GB": "English (British)",  # Only usable for destination language
         "et": "Estonian",
         "fi": "Finnish",
         "fr": "French",
