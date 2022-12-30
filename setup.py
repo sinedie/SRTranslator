@@ -1,3 +1,4 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
 with open("requirements.txt") as f:
@@ -6,8 +7,10 @@ with open("requirements.txt") as f:
 setup(
     name="srtranslator",
     description="Traslate a .SRT file using any custom translator",
+    long_description=Path("README.md").read_text(encoding="utf-8"),
+    long_description_content_type="text/markdown",
     url="https://github.com/sinedie/SRTranslator",
-    version="0.1.0",
+    version="0.1.1",
     author="EAR",
     author_email="sinedie@protonmail.com",
     license="FREE",
