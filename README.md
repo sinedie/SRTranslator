@@ -2,6 +2,8 @@
 
 ## Install
 
+[PyPI](https://pypi.org/project/srtranslator/)
+
 ```
 pip install srtranslator
 ```
