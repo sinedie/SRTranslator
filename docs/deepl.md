@@ -23,7 +23,8 @@ zh : Chinese
 cs : Czech
 da : Danish
 nl : Dutch
-en : English
+en-US : English (American)
+en-GB : English (British)
 et : Estonian
 fi : Finnish
 fr : French
@@ -46,4 +47,4 @@ sv : Swedish
 
 ## Limitations
 
-DeepL won't let you translate more than 3000 characters at the same time.
+DeepL won't let you translate more than 3000 characters at the same time so it will be slow
