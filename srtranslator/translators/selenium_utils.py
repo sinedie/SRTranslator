@@ -89,7 +89,10 @@ class Text(BaseElement):
 
 class TextArea(BaseElement):
     def write(self, value: str) -> None:
-        self.element.clear()
+        try: 
+            self.element.clear()
+        except:
+            pass
         self.element.send_keys(*value)
 
     @property
