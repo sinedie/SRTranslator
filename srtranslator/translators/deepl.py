@@ -34,18 +34,23 @@ class DeeplTranslator(Translator):
         "de": "German",
         "el": "Greek",
         "hu": "Hungarian",
+        "id": "Indonesian",
         "it": "Italian",
         "ja": "Japanese",
         "lv": "Latvian",
         "lt": "Lithuanian",
         "pl": "Polish",
-        "pt": "Portuguese",
+        "pt": "Portuguese",  # Only usable for source language
+        "pt-PT": "Portuguese",  # Only usable for destination language
+        "pt-BR": "Portuguese (Brazilian)",  # Only usable for destination language
         "ro": "Romanian",
         "ru": "Russian",
         "sk": "Slovak",
         "sl": "Slovenian",
         "es": "Spanish",
         "sv": "Swedish",
+        "tr": "Turkish",
+        "uk": "Ukrainian",
     }
 
     def __init__(self, driver: Optional[WebDriver] = None):
