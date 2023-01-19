@@ -38,7 +38,12 @@ class SrtFile:
 
         for subtitle in self.subtitles:
             # Calculate new chunk size if subtitle content is added to actual chunk
-            n_char = sum(len(sub.content) for sub in portion) + len(subtitle.content)
+            n_char = (
+                sum(len(sub.content) for sub in portion)  # All subtitles in chunk
+                + len(subtitle.content)  # New subtitle
+                + len(portion)  # Break lines in chunk
+                + 1  # New breakline
+            )
 
             # If chunk goes beyond the limit, yield it
             if n_char >= chunk_size and len(portion) != 0:
