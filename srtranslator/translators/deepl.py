@@ -53,6 +53,14 @@ class DeeplTranslator(Translator):
         "uk": "Ukrainian",
     }
 
+    def _closePopUp(self):
+        xpath = "/html/body/div[11]/div/div/div/div/div[2]/button"
+
+        try:
+            Button(self.driver, "XPATH", xpath, wait_time=5).click()
+        except TimeOutException:
+            pass
+
     def __init__(self, driver: Optional[WebDriver] = None):
         self.driver = driver
         if self.driver is None:
@@ -61,6 +69,7 @@ class DeeplTranslator(Translator):
 
         logging.info(f"Going to {self.url}")
         self.driver.get(self.url)
+        self._closePopUp()
 
         self.input_lang_from = TextArea(
             self.driver, "CLASS_NAME", "lmt__source_textarea"
