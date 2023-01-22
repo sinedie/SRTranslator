@@ -64,6 +64,7 @@ class BaseElement:
         locate_value: str,
         multiple: bool = False,
         wait_time: int = 100,
+        optional: bool = False,
     ) -> None:
 
         self.driver = driver
@@ -75,6 +76,9 @@ class BaseElement:
             )
             self.element = find_element(*locator)
         except TimeoutException:
+            if optional:
+                return
+
             print(f"Timed out trying to get element ({locate_by} = {locate_value})")
             logging.info("Closing browser")
             driver.quit()
@@ -89,7 +93,7 @@ class Text(BaseElement):
 
 class TextArea(BaseElement):
     def write(self, value: str) -> None:
-        try: 
+        try:
             self.element.clear()
         except:
             pass
