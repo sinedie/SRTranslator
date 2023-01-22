@@ -23,7 +23,7 @@ class SrtFile:
             subtitles = list(srt_file)
             subtitles = list(srt.sort_and_reindex(subtitles))
             self.subtitles = self._clean_subs_content(subtitles)
-            self.length = sum(len(sub.content) for sub in self.subtitles)
+            self.length = sum(len(sub.content) + 1 for sub in self.subtitles)
 
     def _get_next_chunk(self, chunk_size: int = 4500) -> Generator:
         """Get a portion of the subtitles at the time based on the chunk size
