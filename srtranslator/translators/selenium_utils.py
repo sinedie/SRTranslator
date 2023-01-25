@@ -77,6 +77,7 @@ class BaseElement:
             self.element = find_element(*locator)
         except TimeoutException:
             if optional:
+                self.element = None
                 return
 
             print(f"Timed out trying to get element ({locate_by} = {locate_value})")
@@ -88,24 +89,36 @@ class BaseElement:
 class Text(BaseElement):
     @property
     def text(self) -> str:
+        if self.element is None:
+            return ""
+
         return self.element.get_attribute("text")
 
 
 class TextArea(BaseElement):
     def write(self, value: str) -> None:
+        if self.element is None:
+            return
+
         try:
             self.element.clear()
+            self.element.send_keys(*value)
         except:
             pass
-        self.element.send_keys(*value)
 
     @property
     def value(self) -> None:
+        if self.element is None:
+            return ""
+
         return self.element.get_attribute("value")
 
 
 class Button(BaseElement):
     def click(self) -> None:
+        if self.element is None:
+            return
+
         try:
             can_click = getattr(self.element, "click", None)
             if callable(can_click):
