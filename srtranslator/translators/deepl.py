@@ -71,8 +71,13 @@ class DeeplTranslator(Translator):
         )
 
     def _closePopUp(self):
-        xpath = "/html/body/div[11]/div/div/div/div/div[2]/button"
-        Button(self.driver, "XPATH", xpath, wait_time=10, optional=True).click()
+        Button(
+            self.driver,
+            "CSS_SELECTOR",
+            "[aria-label=Close]",
+            wait_time=10,
+            optional=True,
+        ).click()
 
     def _set_source_language(self, language: str) -> None:
         self._set_language(language, "lmt__language_select--source")
