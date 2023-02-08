@@ -75,7 +75,7 @@ class DeeplTranslator(Translator):
             self.driver,
             "CSS_SELECTOR",
             "[aria-label=Close]",
-            wait_time=10,
+            wait_time=5,
             optional=True,
         ).click()
 

@@ -10,7 +10,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.common.exceptions import WebDriverException
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver import ActionChains, Keys
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def create_proxy() -> Proxy:
@@ -72,10 +73,10 @@ class BaseElement:
         find_element = driver.find_elements if multiple else driver.find_element
         try:
             WebDriverWait(driver, wait_time).until(
-                lambda driver: find_element(*locator)
+                lambda driver: EC.element_to_be_clickable(locator)
             )
             self.element = find_element(*locator)
-        except TimeoutException:
+        except:
             if optional:
                 self.element = None
                 return
@@ -100,11 +101,10 @@ class TextArea(BaseElement):
         if self.element is None:
             return
 
-        try:
-            self.element.clear()
-            self.element.send_keys(*value)
-        except:
-            pass
+        actions_handler = ActionChains(self.driver).move_to_element(self.element)
+        actions_handler.click().key_down(Keys.CONTROL).send_keys("a").perform()
+        actions_handler.send_keys(Keys.CLEAR).key_up(Keys.CONTROL).perform()
+        actions_handler.send_keys(*value).perform()
 
     @property
     def value(self) -> None:
