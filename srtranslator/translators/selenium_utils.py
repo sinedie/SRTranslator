@@ -101,9 +101,12 @@ class TextArea(BaseElement):
         if self.element is None:
             return
 
+        # Check OS to use Cmd or Ctrl keys
+        cmd_ctrl = Keys.COMMAND if sys.platform == "darwin" else Keys.CONTROL
+
         actions_handler = ActionChains(self.driver).move_to_element(self.element)
-        actions_handler.click().key_down(Keys.CONTROL).send_keys("a").perform()
-        actions_handler.send_keys(Keys.CLEAR).key_up(Keys.CONTROL).perform()
+        actions_handler.click().key_down(cmd_ctrl).send_keys("a").perform()
+        actions_handler.send_keys(Keys.CLEAR).key_up(cmd_ctrl).perform()
         actions_handler.send_keys(*value).perform()
 
     @property
