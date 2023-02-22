@@ -78,7 +78,6 @@ class SrtFile:
 
             sub.content = sub.content.replace("\n", " ")
 
-        print(subtitles)
         return subtitles
 
     def wrap_lines(self, line_wrap_limit: int = 50) -> None:
