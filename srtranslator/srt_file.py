@@ -70,8 +70,15 @@ class SrtFile:
         for sub in subtitles:
             sub.content = cleanr.sub("", sub.content)
             sub.content = srt.make_legal_content(sub.content)
-            sub.content = sub.content.strip().replace("\n", " ")
+            sub.content = sub.content.strip()
 
+            if all(sentence.startswith("-") for sentence in sub.content.split("\n")):
+                sub.content = sub.content.replace("\n", "_")
+                continue
+
+            sub.content = sub.content.replace("\n", " ")
+
+        print(subtitles)
         return subtitles
 
     def wrap_lines(self, line_wrap_limit: int = 50) -> None:
@@ -81,8 +88,15 @@ class SrtFile:
             line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50.
         """
         for sub in self.subtitles:
-            if len(sub.content) > line_wrap_limit:
-                sub.content = self.wrap_line(sub.content, line_wrap_limit)
+            sub.content = sub.content.replace("_-", "\n-")
+
+            content = []
+            for line in sub.content.split("\n"):
+                if len(line) > line_wrap_limit:
+                    line = self.wrap_line(line, line_wrap_limit)
+                content.append(line)
+
+            sub.content = "\n".join(content)
 
     def wrap_line(self, text: str, line_wrap_limit: int = 50) -> str:
         """Wraps a line of text without breaking any word in half
