@@ -43,6 +43,10 @@ Quit translator
 translator.quit()
 ```
 
+## Usage from GUI
+
+[KryptoST](https://github.com/KryptoST) has made a C# graphical user interface. You can check it out [here](https://github.com/KryptoST/SRTranslatorGUI)
+
 ## Usage command line
 
 ```
