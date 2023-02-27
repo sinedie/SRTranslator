@@ -8,6 +8,10 @@
 pip install srtranslator
 ```
 
+## Usage in Blender
+
+[tin2tin](https://github.com/tin2tin) has made this [blender addon](https://github.com/tin2tin/import_subtitles). Check it out.
+
 ## Usage from script
 
 Import stuff
