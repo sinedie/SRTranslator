@@ -36,6 +36,7 @@ class DeeplTranslator(Translator):
         "hu": "Hungarian",
         "id": "Indonesian",
         "it": "Italian",
+        "ko": "Korean",
         "ja": "Japanese",
         "lv": "Latvian",
         "lt": "Lithuanian",
