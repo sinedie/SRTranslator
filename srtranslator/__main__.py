@@ -4,6 +4,7 @@ import logging
 
 from .srt_file import SrtFile
 from .translators.deepl import DeeplTranslator
+from .translators.translatepy import TranslatePy
 
 parser = argparse.ArgumentParser(description="Translate an .STR file")
 
@@ -64,6 +65,27 @@ parser.add_argument(
     help="Number of characters -including spaces- to wrap a line of text. Default: 50",
 )
 
+parser.add_argument(
+    "-t",
+    "--translator",
+    type=str,
+    choices=["deepl-web", "translatepy"],
+    help="Built-in translator to use",
+    default="deepl-web",
+)
+
+parser.add_argument(
+    "-p",
+    "--proxy",
+    type=str,
+    help="Default proxy to use",
+)
+
+builtin_translators = {
+    "deepl-web": DeeplTranslator,
+    "translatepy": TranslatePy,
+}
+
 args = parser.parse_args()
 logging.basicConfig(level=args.loglevel)
 
@@ -75,7 +97,7 @@ except:
 if not args.show_browser:
     os.environ["MOZ_HEADLESS"] = "1"
 
-translator = DeeplTranslator()
+translator = builtin_translators[args.translator]()
 
 srt = SrtFile(args.filepath)
 srt.translate(translator, args.src_lang, args.dest_lang)
