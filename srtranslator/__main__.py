@@ -101,8 +101,8 @@ if not args.show_browser:
     os.environ["MOZ_HEADLESS"] = "1"
 
 translator_args = {}
-if args.api_key:
-    translator_args["api_key"] = args.api_key
+if args.auth:
+    translator_args["api_key"] = args.auth
 
 translator = builtin_translators[args.translator](**translator_args)
 
