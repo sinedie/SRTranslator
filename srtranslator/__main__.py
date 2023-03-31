@@ -3,7 +3,8 @@ import argparse
 import logging
 
 from .srt_file import SrtFile
-from .translators.deepl import DeeplTranslator
+from .translators.deepl_api import DeeplApi
+from .translators.deepl_scrap import DeeplTranslator
 from .translators.translatepy import TranslatePy
 
 parser = argparse.ArgumentParser(description="Translate an .STR file")
@@ -69,20 +70,22 @@ parser.add_argument(
     "-t",
     "--translator",
     type=str,
-    choices=["deepl-web", "translatepy"],
+    choices=["deepl-scrap", "translatepy", "deepl-api"],
     help="Built-in translator to use",
-    default="deepl-web",
+    default="deepl-scrap",
 )
 
 parser.add_argument(
-    "-p",
-    "--proxy",
+    "--auth",
     type=str,
-    help="Default proxy to use",
+    help="Api key if needed on translator",
 )
 
+# TODO add custom proxy arg
+
 builtin_translators = {
-    "deepl-web": DeeplTranslator,
+    "deepl-scrap": DeeplTranslator,
+    "deepl-api": DeeplApi,
     "translatepy": TranslatePy,
 }
 
@@ -97,7 +100,11 @@ except:
 if not args.show_browser:
     os.environ["MOZ_HEADLESS"] = "1"
 
-translator = builtin_translators[args.translator]()
+translator_args = {}
+if args.api_key:
+    translator_args["api_key"] = args.api_key
+
+translator = builtin_translators[args.translator](**translator_args)
 
 srt = SrtFile(args.filepath)
 srt.translate(translator, args.src_lang, args.dest_lang)
