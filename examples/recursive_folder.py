@@ -2,8 +2,7 @@ import os
 import glob
 
 from srtranslator import SrtFile
-from srtranslator.translators.deepl import DeeplTranslator
-
+from srtranslator.translators.deepl_scrap import DeeplTranslator
 
 folder = "srt_test/"
 for filepath in glob.glob(os.path.join(folder, "**/*.srt"), recursive=True):
