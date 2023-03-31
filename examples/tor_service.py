@@ -3,8 +3,7 @@ import glob
 
 from selenium import webdriver
 from srtranslator import SrtFile, srt_files_in_folder
-from srtranslator.translators.deepl import DeeplTranslator
-
+from srtranslator.translators.deepl_scrap import DeeplTranslator
 
 profile = webdriver.FirefoxProfile()
 profile.set_preference("network.proxy.type", 1)

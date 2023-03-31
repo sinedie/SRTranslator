@@ -5,10 +5,11 @@ class Translator(ABC):
     max_char: int
 
     @abstractmethod
-    def translate(self, text: str, source_language: str, destination_language: str):
+    def translate(
+        self, text: str, source_language: str, destination_language: str
+    ) -> str:
         ...
 
-    @abstractmethod
     def quit(self):
         ...
 

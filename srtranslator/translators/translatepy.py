@@ -28,6 +28,3 @@ class TranslatePy(BaseTranslator):
         except Exception:
             print("An unknown error occured")
             return
-
-    def quit(self):
-        ...

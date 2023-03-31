@@ -5,13 +5,27 @@
 Driver is optional, if not passed as argument the code will create a new firefox driver with geckodriver (and yes, it install it and put in path if needed) and setup free proxies to avoid getting banned
 
 ```
-from srtranslator.translators.deepl import DeeplTranslator
+from srtranslator.translators.deepl_scrap import DeeplTranslator
 
 translator = DeeplTranslator(driver=driver)
 
 translator.translate(text, source_language, destination_language)
 
 translator.quit()
+```
+
+### From CLI:
+
+(this is the default translator)
+
+```
+python -m srtranslator -i src_lang -o target_lang /path/to/srt
+```
+
+or
+
+```
+python -m srtranslator --translator deepl-scrap -i src_lang -o target_lang /path/to/srt
 ```
 
 ## Supported languages
