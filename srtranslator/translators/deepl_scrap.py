@@ -71,6 +71,9 @@ class DeeplTranslator(Translator):
             self.driver, "CLASS_NAME", "lmt__target_textarea"
         )
 
+        self.src_lang = None
+        self.target_lang = None
+
     def _closePopUp(self):
         Button(
             self.driver,
@@ -82,9 +85,11 @@ class DeeplTranslator(Translator):
 
     def _set_source_language(self, language: str) -> None:
         self._set_language(language, "lmt__language_select--source")
+        self.src_lang = language
 
     def _set_destination_language(self, language: str) -> None:
         self._set_language(language, "lmt__language_select--target")
+        self.target_lang = language
 
     def _set_language(self, language: str, dropdown_class: str) -> None:
         # Click the languages dropdown button
@@ -107,8 +112,10 @@ class DeeplTranslator(Translator):
         )
 
     def translate(self, text: str, source_language: str, destination_language: str):
-        self._set_source_language(source_language)
-        self._set_destination_language(destination_language)
+        if source_language != self.src_lang:
+            self._set_source_language(source_language)
+        if destination_language != self.target_lang:
+            self._set_destination_language(destination_language)
 
         clean_text = text.replace("[...]", "@[.]@")
 
