@@ -17,6 +17,7 @@ pip install srtranslator
 Import stuff
 
 ```
+import os
 from srtranslator import SrtFile
 from srtranslator.translators.deepl_api import DeeplApi
 from srtranslator.translators.deepl_scrap import DeeplTranslator
