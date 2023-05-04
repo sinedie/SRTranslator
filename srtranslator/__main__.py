@@ -81,8 +81,6 @@ parser.add_argument(
     help="Api key if needed on translator",
 )
 
-# TODO add custom proxy arg
-
 builtin_translators = {
     "deepl-scrap": DeeplTranslator,
     "deepl-api": DeeplApi,

@@ -10,7 +10,7 @@ setup(
     long_description=Path("README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",
     url="https://github.com/sinedie/SRTranslator",
-    version="0.2.3",
+    version="0.2.4",
     author="EAR",
     author_email="sinedie@protonmail.com",
     license="FREE",

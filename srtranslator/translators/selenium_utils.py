@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from typing import Optional
+from typing import Optional, List
 from fp.fp import FreeProxy
 from selenium import webdriver
 from webdriverdownloader import GeckoDriverDownloader
@@ -14,14 +14,17 @@ from selenium.webdriver import ActionChains, Keys
 from selenium.webdriver.support import expected_conditions as EC
 
 
-def create_proxy() -> Proxy:
+def create_proxy(country_id: Optional[List[str]] = ["US"]) -> Proxy:
     """Creates a new proxy to use with a selenium driver and avoid get banned
+
+    Args:
+        country_id (Optional[List[str]], optional): Contry id to create proxy. Defaults to ['US'].
 
     Returns:
         Proxy: Selenium WebDriver proxy
     """
     logging.info("Getting a new Proxy from https://www.sslproxies.org/")
-    proxy = FreeProxy().get()
+    proxy = FreeProxy(country_id=country_id).get()
     proxy = Proxy(
         dict(
             proxyType=ProxyType.MANUAL,
