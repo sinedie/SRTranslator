@@ -96,7 +96,9 @@ class DeeplTranslator(Translator):
         Button(self.driver, "CLASS_NAME", dropdown_class).click()
 
         # Get the language button to click based on is dl-test property or the text in the button
-        xpath_by_property = f"//button[@data-testid='translator-lang-option-{language}']"
+        xpath_by_property = (
+            f"//button[@data-testid='translator-lang-option-{language}']"
+        )
         x_path_by_text = f"//button[text()='{self.languages[language]}']"
         xpath = f"{xpath_by_property} | {x_path_by_text}"
 
@@ -126,6 +128,8 @@ class DeeplTranslator(Translator):
             translation = self.input_destination_language.value
 
             if self._is_translated(clean_text, translation):
+                time.sleep(1)
+                translation = self.input_destination_language.value
                 return translation.replace("@[.]@", "[...]")
             time.sleep(1)
 
