@@ -72,6 +72,9 @@ class SrtFile:
             sub.content = srt.make_legal_content(sub.content)
             sub.content = sub.content.strip()
 
+            if sub.content == "":
+                sub.content = "..."
+
             if all(sentence.startswith("-") for sentence in sub.content.split("\n")):
                 sub.content = sub.content.replace("\n", "_")
                 continue
