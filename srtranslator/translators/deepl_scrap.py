@@ -128,7 +128,7 @@ class DeeplTranslator(Translator):
             translation = self.input_destination_language.value
 
             if self._is_translated(clean_text, translation):
-                time.sleep(1)
+                time.sleep(2)
                 translation = self.input_destination_language.value
                 return translation.replace("@[.]@", "[...]")
             time.sleep(1)
