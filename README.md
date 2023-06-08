@@ -4,7 +4,7 @@
 
 [PyPI](https://pypi.org/project/srtranslator/)
 
-```
+```bash
 pip install srtranslator
 ```
 
@@ -16,7 +16,7 @@ pip install srtranslator
 
 Import stuff
 
-```
+```python
 import os
 from srtranslator import SrtFile
 from srtranslator.translators.deepl_api import DeeplApi
@@ -26,13 +26,13 @@ from srtranslator.translators.translatepy import TranslatePy
 
 Initialize translator. It can be any translator, even your own, check the docs, there are instructions per translator and how to create your own.
 
-```
+```python
 translator = DeeplTranslator() # or TranslatePy() or DeeplApi(api_key)
 ```
 
 Load, translate and save. For multiple recursive files in folder, check `examples folder`
 
-```
+```python
 filepath = "./filepath/to/srt"
 srt = SrtFile(filepath)
 srt.translate(translator, "en", "es")
@@ -45,7 +45,7 @@ srt.save(f"{os.path.splitext(filepath)[0]}_translated.srt")
 
 Quit translator
 
-```
+```python
 translator.quit()
 ```
 
@@ -55,7 +55,7 @@ translator.quit()
 
 ## Usage command line
 
-```
+```bash
 python -m srtranslator ./filepath/to/srt -i SRC_LANG -o DEST_LANG
 ```
 
