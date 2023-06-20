@@ -55,11 +55,16 @@ class DeeplTranslator(Translator):
     }
 
     def __init__(self, driver: Optional[WebDriver] = None):
+        self.last_translation_failed = False
         self.driver = driver
-        if self.driver is None:
-            proxy = create_proxy()
-            self.driver = create_driver(proxy)
 
+        if self.driver is None:
+            self._rotate_proxy()
+            return
+
+        self._reset()
+
+    def _reset(self):
         logging.info(f"Going to {self.url}")
         self.driver.get(self.url)
         self._closePopUp()
@@ -73,6 +78,16 @@ class DeeplTranslator(Translator):
 
         self.src_lang = None
         self.target_lang = None
+
+    def _rotate_proxy(self):
+        if self.driver is not None:
+            logging.info(" ======= Translation failed. Probably got banned. ======= ")
+            logging.info("Rotating proxy")
+            self.quit()
+
+        proxy = create_proxy()
+        self.driver = create_driver(proxy)
+        self._reset()
 
     def _closePopUp(self):
         Button(
@@ -130,8 +145,17 @@ class DeeplTranslator(Translator):
             if self._is_translated(clean_text, translation):
                 time.sleep(2)
                 translation = self.input_destination_language.value
+
+                # Reset the proxy flag
+                self.last_translation_failed = False
                 return translation.replace("@[.]@", "[...]")
             time.sleep(1)
+
+        # Maybe proxy got banned, so we try with a new proxy, but just once.
+        if not self.last_translation_failed:
+            self.last_translation_failed = True
+            self._rotate_proxy()
+            return self.translate(text, source_language, destination_language)
 
         self.quit()
         raise TimeOutException("Translation timed out")
