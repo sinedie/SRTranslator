@@ -17,7 +17,7 @@ from .selenium_utils import (
 
 class DeeplTranslator(Translator):
     url = "https://www.deepl.com/translator"
-    max_char = 3000
+    max_char = 1500
     languages = {
         "auto": "Any language (detect)",
         "bg": "Bulgarian",
