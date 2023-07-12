@@ -3,7 +3,7 @@ from .base import Translator
 
 
 class DeeplApi(Translator):
-    max_char = 3000
+    max_char = 1500
 
     def __init__(self, api_key):
         self.translator = deepl.Translator(api_key)

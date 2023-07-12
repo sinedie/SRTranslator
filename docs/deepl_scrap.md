@@ -68,4 +68,4 @@ uk : Ukrainian
 
 ## Limitations
 
-DeepL won't let you translate more than 3000 characters at the same time so it will be slow
+DeepL won't let you translate more than 1500 characters at the same time so it will be slow

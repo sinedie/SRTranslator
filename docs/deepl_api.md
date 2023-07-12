@@ -32,4 +32,4 @@ python -m srtranslator --translator deepl-api --auth YOUR_API_KEY -i src_lang -o
 
 ## Limitations
 
-Change the translator character limit (set in 3000 by default) if use a paid API version. You can translate more than that at once.
+Change the translator character limit (set in 1500 by default) if use a paid API version. You can translate more than that at once.
