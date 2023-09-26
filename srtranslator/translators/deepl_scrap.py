@@ -70,10 +70,10 @@ class DeeplTranslator(Translator):
         self._closePopUp()
 
         self.input_lang_from = TextArea(
-            self.driver, "CLASS_NAME", "lmt__source_textarea"
+            self.driver, "CLASS_NAME", "translator-source-input"
         )
         self.input_destination_language = TextArea(
-            self.driver, "CLASS_NAME", "lmt__target_textarea"
+            self.driver, "CLASS_NAME", "translator-target-input"
         )
 
         self.src_lang = None
@@ -99,11 +99,11 @@ class DeeplTranslator(Translator):
         ).click()
 
     def _set_source_language(self, language: str) -> None:
-        self._set_language(language, "lmt__language_select--source")
+        self._set_language(language, "translator-source-lang-btn")
         self.src_lang = language
 
     def _set_destination_language(self, language: str) -> None:
-        self._set_language(language, "lmt__language_select--target")
+        self._set_language(language, "translator-target-lang-btn")
         self.target_lang = language
 
     def _set_language(self, language: str, dropdown_class: str) -> None:
