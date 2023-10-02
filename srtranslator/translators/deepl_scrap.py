@@ -67,13 +67,14 @@ class DeeplTranslator(Translator):
     def _reset(self):
         logging.info(f"Going to {self.url}")
         self.driver.get(self.url)
+        self.driver.implicitly_wait(5)
         self._closePopUp()
 
         self.input_lang_from = TextArea(
-            self.driver, "CLASS_NAME", "lmt__source_textarea"
+            self.driver, "XPATH", "//*[@data-testid='translator-source-input']"
         )
         self.input_destination_language = TextArea(
-            self.driver, "CLASS_NAME", "lmt__target_textarea"
+            self.driver, "XPATH", "//*[@data-testid='translator-target-input']"
         )
 
         self.src_lang = None
