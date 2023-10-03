@@ -100,16 +100,16 @@ class DeeplTranslator(Translator):
         ).click()
 
     def _set_source_language(self, language: str) -> None:
-        self._set_language(language, "lmt__language_select--source")
+        self._set_language(language, "//*[@data-testid='translator-source-lang']")
         self.src_lang = language
 
     def _set_destination_language(self, language: str) -> None:
-        self._set_language(language, "lmt__language_select--target")
+        self._set_language(language, "//*[@data-testid='translator-target-lang']")
         self.target_lang = language
 
-    def _set_language(self, language: str, dropdown_class: str) -> None:
+    def _set_language(self, language: str, xpath: str) -> None:
         # Click the languages dropdown button
-        Button(self.driver, "CLASS_NAME", dropdown_class).click()
+        Button(self.driver, "XPATH", xpath).click()
 
         # Get the language button to click based on is dl-test property or the text in the button
         xpath_by_property = (
