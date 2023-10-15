@@ -1,3 +1,4 @@
+import os
 import re
 import srt
 
@@ -15,15 +16,41 @@ class SrtFile:
     """
 
     def __init__(self, filepath: str) -> None:
+        self.filepath = filepath
+        self.backup_file = f"{self.filepath}.tmp"
         self.subtitles = []
-        self.length = 0
+        self.start_from = 0
+        self.current_subtitle = 0
+
         print(f"Loading {filepath}")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
-            srt_file = srt.parse(input_file)
-            subtitles = list(srt_file)
-            subtitles = list(srt.sort_and_reindex(subtitles))
-            self.subtitles = self._clean_subs_content(subtitles)
-            self.length = sum(len(sub.content) + 1 for sub in self.subtitles)
+            self.subtitles = self.load_from_file(input_file)
+
+        self._load_backup()
+
+    def _load_backup(self):
+        if not os.path.exists(self.backup_file):
+            return
+
+        print(f"Backup file found = {self.backup_file}")
+        with open(
+            self.backup_file, "r", encoding="utf-8", errors="ignore"
+        ) as input_file:
+            subtitles = self.load_from_file(input_file)
+
+            self.start_from = len(subtitles)
+            self.current_subtitle = self.start_from
+            print(f"Starting from subtitle {self.start_from}")
+            self.subtitles = [
+                *subtitles,
+                *self.subtitles[self.start_from :],
+            ]
+
+    def load_from_file(self, input_file):
+        srt_file = srt.parse(input_file)
+        subtitles = list(srt_file)
+        subtitles = list(srt.sort_and_reindex(subtitles))
+        return self._clean_subs_content(subtitles)
 
     def _get_next_chunk(self, chunk_size: int = 4500) -> Generator:
         """Get a portion of the subtitles at the time based on the chunk size
@@ -36,7 +63,7 @@ class SrtFile:
         """
         portion = []
 
-        for subtitle in self.subtitles:
+        for subtitle in self.subtitles[self.start_from :]:
             # Calculate new chunk size if subtitle content is added to actual chunk
             n_char = (
                 sum(len(sub.content) for sub in portion)  # All subtitles in chunk
@@ -53,7 +80,7 @@ class SrtFile:
             # Put subtitle content in chunk
             portion.append(subtitle)
 
-        # Yield las chunk
+        # Yield last chunk
         yield portion
 
     def _clean_subs_content(self, subtitles: List[Subtitle]) -> List[Subtitle]:
@@ -76,7 +103,7 @@ class SrtFile:
                 sub.content = "..."
 
             if all(sentence.startswith("-") for sentence in sub.content.split("\n")):
-                sub.content = sub.content.replace("\n", "_")
+                sub.content = sub.content.replace("\n", "////")
                 continue
 
             sub.content = sub.content.replace("\n", " ")
@@ -90,7 +117,7 @@ class SrtFile:
             line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50.
         """
         for sub in self.subtitles:
-            sub.content = sub.content.replace("_-", "\n-")
+            sub.content = sub.content.replace("////", "\n")
 
             content = []
             for line in sub.content.split("\n"):
@@ -140,11 +167,11 @@ class SrtFile:
             destination_language (str): Destination language (must be coherent with your translator)
             source_language (str): Source language (must be coherent with your translator)
         """
-        progress = 0
 
         # For each chunk of the file (based on the translator capabilities)
         for subs_slice in self._get_next_chunk(translator.max_char):
-            print(f"... Translating chunk. {int(100 * progress / self.length)} %")
+            progress = int(100 * self.current_subtitle / len(self.subtitles))
+            print(f"... Translating {progress} %")
 
             # Put chunk in a single text with break lines
             text = [sub.content for sub in subs_slice]
@@ -159,10 +186,17 @@ class SrtFile:
             translation = translation.splitlines()
             for i in range(len(subs_slice)):
                 subs_slice[i].content = translation[i]
-
-            progress += len(text)
+                self.current_subtitle += 1
 
         print(f"... Translation done")
+
+    def save_backup(self):
+        self.subtitles = self.subtitles[: self.current_subtitle]
+        self.save(self.backup_file)
+
+    def _delete_backup(self):
+        if os.path.exists(self.backup_file):
+            os.remove(self.backup_file)
 
     def save(self, filepath: str) -> None:
         """Saves SRT to file
@@ -170,6 +204,8 @@ class SrtFile:
         Args:
             filepath (str): Path of the new file
         """
+        self._delete_backup()
+
         print(f"Saving {filepath}")
         subtitles = srt.compose(self.subtitles)
         with open(filepath, "w", encoding="utf-8") as file_out:
