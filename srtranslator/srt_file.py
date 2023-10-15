@@ -103,7 +103,7 @@ class SrtFile:
                 sub.content = "..."
 
             if all(sentence.startswith("-") for sentence in sub.content.split("\n")):
-                sub.content = sub.content.replace("\n", "_")
+                sub.content = sub.content.replace("\n", "////")
                 continue
 
             sub.content = sub.content.replace("\n", " ")
@@ -117,7 +117,7 @@ class SrtFile:
             line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50.
         """
         for sub in self.subtitles:
-            sub.content = sub.content.replace("_-", "\n-")
+            sub.content = sub.content.replace("////", "\n")
 
             content = []
             for line in sub.content.split("\n"):
