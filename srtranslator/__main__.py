@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+import traceback
 
 from .srt_file import SrtFile
 from .translators.deepl_api import DeeplApi
@@ -105,8 +106,13 @@ if args.auth:
 translator = builtin_translators[args.translator](**translator_args)
 
 srt = SrtFile(args.filepath)
-srt.translate(translator, args.src_lang, args.dest_lang)
-srt.wrap_lines(args.wrap_limit)
-srt.save(f"{os.path.splitext(args.filepath)[0]}_{args.dest_lang}.srt")
+
+try:
+    srt.translate(translator, args.src_lang, args.dest_lang)
+    srt.wrap_lines(args.wrap_limit)
+    srt.save(f"{os.path.splitext(args.filepath)[0]}_{args.dest_lang}.srt")
+except:
+    srt.save_backup()
+    traceback.print_exc()
 
 translator.quit()
