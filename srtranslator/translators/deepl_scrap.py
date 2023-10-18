@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.common.proxy import Proxy
+from selenium.webdriver.common.keys import Keys
 
 from .base import Translator, TimeOutException
 from .selenium_utils import (
@@ -137,7 +138,7 @@ class DeeplTranslator(Translator):
 
         clean_text = text.replace("[...]", "@[.]@")
 
-        self.input_lang_from.write((clean_text))
+        self.input_lang_from.write((clean_text.replace("\n", Keys.ENTER)))
 
         # Maximun number of iterations 60 seconds
         for _ in range(60):
