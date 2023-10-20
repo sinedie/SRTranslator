@@ -14,7 +14,7 @@ h11==0.14.0
 idna==3.4
 inquirer==3.1.1
 jinxed==1.2.0
-lxml==4.9.2
+lxml==4.9.3
 outcome==1.2.0
 pycparser==2.21
 PySocks==1.7.1
