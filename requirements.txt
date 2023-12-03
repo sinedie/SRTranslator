@@ -17,6 +17,7 @@ jinxed==1.2.0
 lxml==4.9.3
 outcome==1.2.0
 pycparser==2.21
+PyDeepLX==1.0.4
 PySocks==1.7.1
 python-editor==1.0.4
 pyuseragents==1.0.5
