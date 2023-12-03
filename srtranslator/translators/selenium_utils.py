@@ -23,18 +23,26 @@ def create_proxy(country_id: Optional[List[str]] = ["US"]) -> Proxy:
     Returns:
         Proxy: Selenium WebDriver proxy
     """
-    logging.info("Getting a new Proxy from https://www.sslproxies.org/")
-    proxy = FreeProxy(country_id=country_id).get()
-    proxy = Proxy(
-        dict(
-            proxyType=ProxyType.MANUAL,
-            httpProxy=proxy,
-            ftpProxy=proxy,
-            sslProxy=proxy,
-            noProxy="",
-        )
-    )
-    return proxy
+    i = 0
+    while i < 3:
+        try:
+            logging.info("Getting a new Proxy from https://www.sslproxies.org/")
+            proxy = FreeProxy(country_id=country_id).get()
+            proxy = Proxy(
+                dict(
+                    proxyType=ProxyType.MANUAL,
+                    httpProxy=proxy,
+                    ftpProxy=proxy,
+                    sslProxy=proxy,
+                    noProxy="",
+                )
+            )
+            return proxy
+        except:
+            logging.info("Exception while getting Proxy. Trying again")
+            i += 1
+
+    raise Exception("Unable to get proxy")
 
 
 def create_driver(proxy: Optional[Proxy] = None) -> WebDriver:
