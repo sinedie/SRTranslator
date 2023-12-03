@@ -22,12 +22,13 @@ from srtranslator import SrtFile
 from srtranslator.translators.deepl_api import DeeplApi
 from srtranslator.translators.deepl_scrap import DeeplTranslator
 from srtranslator.translators.translatepy import TranslatePy
+from srtranslator.translators.pydeeplx import DeepLX
 ```
 
 Initialize translator. It can be any translator, even your own, check the docs, there are instructions per translator and how to create your own.
 
 ```python
-translator = DeeplTranslator() # or TranslatePy() or DeeplApi(api_key)
+translator = DeeplTranslator() # or TranslatePy() or DeeplApi(api_key) or DeepLX()
 ```
 
 Load, translate and save. For multiple recursive files in folder, check `examples folder`
