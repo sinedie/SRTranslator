@@ -9,11 +9,16 @@ from .selenium_utils import (
 )
 
 
-class DeepLX(BaseTranslator):
+class PyDeepLX(BaseTranslator):
     max_char = 1500
 
-    def __init__(self):
-        self.proxies = None
+    def __init__(self, proxies=None):
+        self.proxies = proxies
+
+        # Use proxy by default if self.proxies is True
+        if self.proxies:
+            print("...... Use proxy")
+            self.proxies = FreeProxy(rand=True, timeout=1).get()
 
     def translate(self, text, source_language, destination_language):
         # Sleep a random number of seconds (between 3 and 5)
@@ -22,9 +27,10 @@ class DeepLX(BaseTranslator):
         print(f"...... Wait randomly {RANDOM_WAIT}s")
         sleep(RANDOM_WAIT)
 
-        # Max retry 3
+        # Max retry 10
         RETRY_COUNTER = 10
         result = None
+
         while RETRY_COUNTER > 0 :
             try:
                 result = PyDeepLX.translate(

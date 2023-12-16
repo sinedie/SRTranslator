@@ -22,7 +22,7 @@ from srtranslator import SrtFile
 from srtranslator.translators.deepl_api import DeeplApi
 from srtranslator.translators.deepl_scrap import DeeplTranslator
 from srtranslator.translators.translatepy import TranslatePy
-from srtranslator.translators.pydeeplx import DeepLX
+from srtranslator.translators.pydeeplx import PyDeepLX
 ```
 
 Initialize translator. It can be any translator, even your own, check the docs, there are instructions per translator and how to create your own.
@@ -63,7 +63,7 @@ python -m srtranslator ./filepath/to/srt -i SRC_LANG -o DEST_LANG
 ## Advanced usage
 
 ```
-usage: __main__.py [-h] [-i SRC_LANG] [-o DEST_LANG] [-v] [-vv] [-s] [-w WRAP_LIMIT] [-t {deepl-scrap,translatepy,deepl-api}] [--auth AUTH] path
+usage: __main__.py [-h] [-i SRC_LANG] [-o DEST_LANG] [-v] [-vv] [-s] [-w WRAP_LIMIT] [-t {deepl-scrap,translatepy,deepl-api,pydeeplx}] [--auth AUTH] path
 
 Translate an .STR file
 
@@ -81,7 +81,7 @@ options:
   -s, --show-browser    Show browser window
   -w WRAP_LIMIT, --wrap-limit WRAP_LIMIT
                         Number of characters -including spaces- to wrap a line of text. Default: 50
-  -t {deepl-scrap,translatepy,deepl-api}, --translator {deepl-scrap,translatepy,deepl-api}
+  -t {deepl-scrap,translatepy,deepl-api}, --translator {deepl-scrap,translatepy,deepl-api,pydeeplx}
                         Built-in translator to use
   --auth AUTH           Api key if needed on translator
 ```

@@ -7,7 +7,7 @@ from .srt_file import SrtFile
 from .translators.deepl_api import DeeplApi
 from .translators.deepl_scrap import DeeplTranslator
 from .translators.translatepy import TranslatePy
-from .translators.pydeeplx import DeepLX
+from .translators.pydeeplx import PyDeepLX
 
 parser = argparse.ArgumentParser(description="Translate an .STR file")
 
@@ -83,11 +83,17 @@ parser.add_argument(
     help="Api key if needed on translator",
 )
 
+parser.add_argument(
+    "--proxies",
+    action="store_true",
+    help="Use proxy by default for pydeeplx",
+)
+
 builtin_translators = {
     "deepl-scrap": DeeplTranslator,
     "deepl-api": DeeplApi,
     "translatepy": TranslatePy,
-    "deeplx": DeepLX,
+    "pydeeplx": PyDeepLX,
 }
 
 args = parser.parse_args()
@@ -104,6 +110,8 @@ if not args.show_browser:
 translator_args = {}
 if args.auth:
     translator_args["api_key"] = args.auth
+if args.proxies:
+    translator_args["proxies"] = args.proxies    
 
 translator = builtin_translators[args.translator](**translator_args)
 
