@@ -1,4 +1,4 @@
-from PyDeepLX import PyDeepLX
+from PyDeepLX import PyDeepLX as PDLX
 from random import randint
 from time import sleep
 
@@ -21,9 +21,9 @@ class PyDeepLX(BaseTranslator):
             self.proxies = FreeProxy(rand=True, timeout=1).get()
 
     def translate(self, text, source_language, destination_language):
-        # Sleep a random number of seconds (between 3 and 5)
+        # Sleep a random number of seconds (between 5 and 10)
         # https://www.shellhacks.com/python-sleep-random-time-web-scraping/
-        RANDOM_WAIT = randint(3,5)
+        RANDOM_WAIT = randint(5, 10)
         print(f"...... Wait randomly {RANDOM_WAIT}s")
         sleep(RANDOM_WAIT)
 
@@ -33,7 +33,7 @@ class PyDeepLX(BaseTranslator):
 
         while RETRY_COUNTER > 0 :
             try:
-                result = PyDeepLX.translate(
+                result = PDLX.translate(
                     text,
                     source_language,
                     destination_language,

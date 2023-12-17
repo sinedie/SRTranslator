@@ -4,12 +4,13 @@ import logging
 import traceback
 
 from .srt_file import SrtFile
+from .ass_file import AssFile
 from .translators.deepl_api import DeeplApi
 from .translators.deepl_scrap import DeeplTranslator
 from .translators.translatepy import TranslatePy
 from .translators.pydeeplx import PyDeepLX
 
-parser = argparse.ArgumentParser(description="Translate an .STR file")
+parser = argparse.ArgumentParser(description="Translate an .STR and .ASS file")
 
 parser.add_argument(
     "filepath",
@@ -72,7 +73,7 @@ parser.add_argument(
     "-t",
     "--translator",
     type=str,
-    choices=["deepl-scrap", "translatepy", "deepl-api", "deeplx"],
+    choices=["deepl-scrap", "translatepy", "deepl-api", "pydeeplx"],
     help="Built-in translator to use",
     default="deepl-scrap",
 )
@@ -115,14 +116,18 @@ if args.proxies:
 
 translator = builtin_translators[args.translator](**translator_args)
 
-srt = SrtFile(args.filepath)
+try:
+    sub = AssFile(args.filepath)
+except AttributeError:
+    print("... Exception while loading as ASS try as SRT")
+    sub = SrtFile(args.filepath)
 
 try:
-    srt.translate(translator, args.src_lang, args.dest_lang)
-    srt.wrap_lines(args.wrap_limit)
-    srt.save(f"{os.path.splitext(args.filepath)[0]}_{args.dest_lang}.srt")
+    sub.translate(translator, args.src_lang, args.dest_lang)
+    sub.wrap_lines(args.wrap_limit)
+    sub.save(f"{os.path.splitext(args.filepath)[0]}_{args.dest_lang}{os.path.splitext(args.filepath)[1]}")
 except:
-    srt.save_backup()
+    sub.save_backup()
     traceback.print_exc()
 
 translator.quit()
