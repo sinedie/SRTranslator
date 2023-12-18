@@ -20,6 +20,7 @@ class AssFile:
         self.subtitles = []
         self.start_from = 0
         self.current_subtitle = 0
+        self.text_styles = []
 
         print(f"Loading {filepath} as ASS")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
@@ -62,6 +63,18 @@ class AssFile:
         portion = []
 
         for subtitle in self.subtitles.events[self.start_from :]:
+            # Manage ASS styles for subtitle before add it to the portion
+            # Extract a list of styles
+            # Replace the styles by |
+
+            # Each style starts with { and end with }
+            # If we have an "}" then we can split and keep the part on the left and keep it in our list
+            for i in subtitle.text.split("{"):
+                if "}" in i:
+                    self.text_styles.append("{" + i.split("}")[0] + "}")
+
+            subtitle.text = re.sub(r"{.*?}", r"|", subtitle.text)
+
             # Calculate new chunk size if subtitle content is added to actual chunk
             n_char = (
                 sum(len(sub.text) for sub in portion)  # All subtitles in chunk
@@ -145,32 +158,19 @@ class AssFile:
             text = [sub.text for sub in subs_slice]
             text = "\n".join(text)
 
-            # Manage ASS commands
-            # Extract a list of styles
-            # Replace the styles by \n\n
-            # Translate the text
-            # Insert the text back in the line with {style1}text1{style2}text2
-
-            # Each style starts with { and end with }
-            # If we have an "}" then we can split and keep the part on the left and keep it in our list
-            text_styles = []
-            for i in text.split("{"):
-                if "}" in i:
-                    text_styles.append("{" + i.split("}")[0] + "}")
-
-            text_without_styles = re.sub(r"{.*?}", r"|", text)
-
             # Translate
             translation = translator.translate(
-                text_without_styles, source_language, destination_language
+                text, source_language, destination_language
             )
 
-            text_styles.reverse()
+            # Manage ASS commands
+            # Insert the styles back in the text instead of |
+            self.text_styles.reverse()
             translation_with_styles = ""
             for i in translation.split(r"|"):
                 try:
                     # We set i at the left part because the style must "replace" the "|"
-                    translation_with_styles += i + text_styles.pop()
+                    translation_with_styles += i + self.text_styles.pop()
                 except IndexError:
                     translation_with_styles += i
 
