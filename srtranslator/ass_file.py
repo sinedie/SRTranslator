@@ -121,6 +121,10 @@ class AssFile:
             # It looks like \N is removed by the translation so we replace them by \\\\
             sub.text = sub.text.replace(r"\N", r"\\\\")
 
+            # The \\\\ must be separated from the words to avoid weird conversions
+            sub.text = re.sub(r"[aA0-zZ9]\\\\", r" \\\\", sub.text)
+            sub.text = re.sub(r"\\\\[aA0-zZ9]", r"\\\\ ", sub.text)
+
             sub.text = sub.text.replace("\n", " ")
 
         return subtitles
@@ -133,7 +137,7 @@ class AssFile:
         """
         for sub in self.subtitles.events:
             sub.text = sub.text.replace("////", "\n")
-            sub.text = sub.text.replace(r"\\\\", r"\N")
+            sub.text = sub.text.replace(r" \\\\ ", r"\N")
 
     def translate(
         self,
