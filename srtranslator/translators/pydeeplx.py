@@ -4,9 +4,6 @@ from time import sleep
 
 from .base import Translator as BaseTranslator
 from fp.fp import FreeProxy
-from .selenium_utils import (
-    create_proxy,
-)
 
 
 class PyDeepLX(BaseTranslator):
@@ -55,4 +52,10 @@ class PyDeepLX(BaseTranslator):
 
                 # Decrease RETRY_COUNTER
                 RETRY_COUNTER -= 1
+
+                # Raise error if RETRY_COUNTER is 0
+                if RETRY_COUNTER == 0:
+                    print("...... Exception RETRY_COUNTER reached 0")
+                    raise
+
         return result
