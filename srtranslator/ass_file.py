@@ -1,18 +1,17 @@
 import os
 import re
-import srt
+import pyass
 
-from srt import Subtitle
 from typing import List, Generator
 
 from .translators.base import Translator
 
 
-class SrtFile:
-    """SRT file class abstraction
+class AssFile:
+    """ASS file class abstraction
 
     Args:
-        filepath (str): file path of srt
+        filepath (str): file path of ass
     """
 
     def __init__(self, filepath: str) -> None:
@@ -21,8 +20,9 @@ class SrtFile:
         self.subtitles = []
         self.start_from = 0
         self.current_subtitle = 0
+        self.text_styles = []
 
-        print(f"Loading {filepath} as SRT")
+        print(f"Loading {filepath} as ASS")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
             self.subtitles = self.load_from_file(input_file)
 
@@ -38,19 +38,18 @@ class SrtFile:
         ) as input_file:
             subtitles = self.load_from_file(input_file)
 
-            self.start_from = len(subtitles)
+            self.start_from = len(subtitles.events)
             self.current_subtitle = self.start_from
             print(f"Starting from subtitle {self.start_from}")
-            self.subtitles = [
-                *subtitles,
-                *self.subtitles[self.start_from :],
+            self.subtitles.events = [
+                *subtitles.events,
+                *self.subtitles.events[self.start_from :],
             ]
 
     def load_from_file(self, input_file):
-        srt_file = srt.parse(input_file)
-        subtitles = list(srt_file)
-        subtitles = list(srt.sort_and_reindex(subtitles))
-        return self._clean_subs_content(subtitles)
+        ass_file        = pyass.load(input_file)
+        ass_file.events = sorted(ass_file.events, key=lambda e: (e.start))
+        return self._clean_subs_content(ass_file)
 
     def _get_next_chunk(self, chunk_size: int = 4500) -> Generator:
         """Get a portion of the subtitles at the time based on the chunk size
@@ -63,11 +62,23 @@ class SrtFile:
         """
         portion = []
 
-        for subtitle in self.subtitles[self.start_from :]:
+        for subtitle in self.subtitles.events[self.start_from :]:
+            # Manage ASS styles for subtitle before add it to the portion
+            # Extract a list of styles
+            # Replace the styles by |
+
+            # Each style starts with { and end with }
+            # If we have an "}" then we can split and keep the part on the left and keep it in our list
+            for i in subtitle.text.split("{"):
+                if "}" in i:
+                    self.text_styles.append("{" + i.split("}")[0] + "}")
+
+            subtitle.text = re.sub(r"{.*?}", r"|", subtitle.text)
+
             # Calculate new chunk size if subtitle content is added to actual chunk
             n_char = (
-                sum(len(sub.content) for sub in portion)  # All subtitles in chunk
-                + len(subtitle.content)  # New subtitle
+                sum(len(sub.text) for sub in portion)  # All subtitles in chunk
+                + len(subtitle.text)  # New subtitle
                 + len(portion)  # Break lines in chunk
                 + 1  # New breakline
             )
@@ -83,76 +94,50 @@ class SrtFile:
         # Yield last chunk
         yield portion
 
-    def _clean_subs_content(self, subtitles: List[Subtitle]) -> List[Subtitle]:
+    def _clean_subs_content(self, subtitles):
         """Cleans subtitles content and delete line breaks
 
         Args:
-            subtitles (List[Subtitle]): List of subtitles
+            subtitles List of subtitles
 
         Returns:
-            List[Subtitle]: Same list of subtitles, but cleaned
+            Same list of subtitles, but cleaned
         """
         cleanr = re.compile("<.*?>")
 
-        for sub in subtitles:
-            sub.content = cleanr.sub("", sub.content)
-            sub.content = srt.make_legal_content(sub.content)
-            sub.content = sub.content.strip()
+        for sub in subtitles.events:
+            sub.text = cleanr.sub("", sub.text)
+            # No real equivalent in ASS
+            #sub.text = srt.make_legal_content(sub.content)
+            sub.text = sub.text.strip()
 
-            if sub.content == "":
-                sub.content = "..."
+            if sub.text == "":
+                sub.text = "..."
 
-            if all(sentence.startswith("-") for sentence in sub.content.split("\n")):
-                sub.content = sub.content.replace("\n", "////")
+            if all(sentence.startswith("-") for sentence in sub.text.split("\n")):
+                sub.text = sub.text.replace("\n", "////")
                 continue
 
-            sub.content = sub.content.replace("\n", " ")
+            # It looks like \N is removed by the translation so we replace them by \\\\
+            sub.text = sub.text.replace(r"\N", r"\\\\")
+
+            # The \\\\ must be separated from the words to avoid weird conversions
+            sub.text = re.sub(r"[aA0-zZ9]\\\\", r" \\\\", sub.text)
+            sub.text = re.sub(r"\\\\[aA0-zZ9]", r"\\\\ ", sub.text)
+
+            sub.text = sub.text.replace("\n", " ")
 
         return subtitles
 
     def wrap_lines(self, line_wrap_limit: int = 50) -> None:
-        """Wrap lines in all subtitles in file
+        """
 
         Args:
-            line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50.
+            line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50. (not used)
         """
-        for sub in self.subtitles:
-            sub.content = sub.content.replace("////", "\n")
-
-            content = []
-            for line in sub.content.split("\n"):
-                if len(line) > line_wrap_limit:
-                    line = self.wrap_line(line, line_wrap_limit)
-                content.append(line)
-
-            sub.content = "\n".join(content)
-
-    def wrap_line(self, text: str, line_wrap_limit: int = 50) -> str:
-        """Wraps a line of text without breaking any word in half
-
-        Args:
-            text (str): Line text to wrap
-            line_wrap_limit (int): Number of maximum characters in a line before wrap. Defaults to 50.
-
-        Returns:
-            str: Text line wraped
-        """
-        wraped_lines = []
-        for word in text.split():
-            # Check if inserting a word in the last sentence goes beyond the wrap limit
-            if (
-                len(wraped_lines) != 0
-                and len(wraped_lines[-1]) + len(word) < line_wrap_limit
-            ):
-                # If not, add it to it
-                wraped_lines[-1] += f" {word}"
-                continue
-
-            # Insert a new sentence
-            wraped_lines.append(f"{word}")
-
-        # Join sentences with line break
-        return "\n".join(wraped_lines)
+        for sub in self.subtitles.events:
+            sub.text = sub.text.replace("////", "\n")
+            sub.text = sub.text.replace(r" \\\\ ", r"\N")
 
     def translate(
         self,
@@ -160,7 +145,7 @@ class SrtFile:
         source_language: str,
         destination_language: str,
     ) -> None:
-        """Translate SRT file using a translator of your choose
+        """Translate ASS file using a translator of your choose
 
         Args:
             translator (Translator): Translator object of choose
@@ -170,11 +155,11 @@ class SrtFile:
 
         # For each chunk of the file (based on the translator capabilities)
         for subs_slice in self._get_next_chunk(translator.max_char):
-            progress = int(100 * self.current_subtitle / len(self.subtitles))
+            progress = int(100 * self.current_subtitle / len(self.subtitles.events))
             print(f"... Translating {progress} %")
 
             # Put chunk in a single text with break lines
-            text = [sub.content for sub in subs_slice]
+            text = [sub.text for sub in subs_slice]
             text = "\n".join(text)
 
             # Translate
@@ -182,16 +167,27 @@ class SrtFile:
                 text, source_language, destination_language
             )
 
+            # Manage ASS commands
+            # Insert the styles back in the text instead of |
+            self.text_styles.reverse()
+            translation_with_styles = ""
+            for i in translation.split(r"|"):
+                try:
+                    # We set i at the left part because the style must "replace" the "|"
+                    translation_with_styles += i + self.text_styles.pop()
+                except IndexError:
+                    translation_with_styles += i
+
             # Break each line back into subtitle content
-            translation = translation.splitlines()
+            translation = translation_with_styles.splitlines()
             for i in range(len(subs_slice)):
-                subs_slice[i].content = translation[i]
+                subs_slice[i].text = translation[i]
                 self.current_subtitle += 1
 
         print(f"... Translation done")
 
     def save_backup(self):
-        self.subtitles = self.subtitles[: self.current_subtitle]
+        self.subtitles.events = self.subtitles.events[: self.current_subtitle]
         self.save(self.backup_file)
 
     def _delete_backup(self):
@@ -199,7 +195,7 @@ class SrtFile:
             os.remove(self.backup_file)
 
     def save(self, filepath: str) -> None:
-        """Saves SRT to file
+        """Saves ASS to file
 
         Args:
             filepath (str): Path of the new file
@@ -207,6 +203,5 @@ class SrtFile:
         self._delete_backup()
 
         print(f"Saving {filepath}")
-        subtitles = srt.compose(self.subtitles)
         with open(filepath, "w", encoding="utf-8") as file_out:
-            file_out.write(subtitles)
+            pyass.dump(self.subtitles, file_out)

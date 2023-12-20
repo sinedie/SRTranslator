@@ -21,7 +21,9 @@ mypy-extensions==0.4.3
 outcome==1.2.0
 pathspec==0.10.3
 platformdirs==2.6.2
+pyass==0.1.4
 pycparser==2.21
+PyDeepLX==1.0.4
 PySocks==1.7.1
 python-editor==1.0.4
 pyuseragents==1.0.5
