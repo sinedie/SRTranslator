@@ -185,11 +185,11 @@ class SrtFile:
             # Break each line back into subtitle content
             translation = translation.splitlines()
             for i in range(len(subs_slice)):  
-                try:
-                    # when the source text is blank or deepL returns null
+                try: 
                     subs_slice[i].content = translation[i]  
                 except:
                     # translation failed, 
+                    # when the source text is blank or deepL returns null
                     subs_slice[i].content = text
                 finally:
                     self.current_subtitle += 1
