@@ -1,6 +1,6 @@
 # This project was generated with 0.3.16 using template: https://github.com/beeware/briefcase-template@v0.3.16
 [tool.briefcase]
-project_name = "Srtranslator"
+project_name = "srtranslatorGUI"
 bundle = "com.sinedie"
 version = "0.0.1"
 url = "https://github.com/sinedie/SRTranslator"
@@ -8,38 +8,39 @@ license = "MIT license"
 author = "EAR"
 author_email = "sinedie@protonmail.com"
 
-[tool.briefcase.app.srtranslator]
-formal_name = "Srtranslator"
+[tool.briefcase.app.srtranslatorGUI]
+formal_name = "srtranslatorGUI"
 description = "SRT files translator"
 long_description = """More details about the app should go here.
 """
-icon = "src/srtranslator/resources/srtranslator"
+icon = "src/srtranslatorGUI/resources/srtranslator"
 sources = [
-    "src/srtranslator",
+    "src/srtranslatorGUI",
 ]
 test_sources = [
     "tests",
 ]
 
 requires = [
+    "srtranslator"
 ]
 test_requires = [
     "pytest",
 ]
 
-[tool.briefcase.app.srtranslator.macOS]
+[tool.briefcase.app.srtranslatorGUI.macOS]
 universal_build = true
 requires = [
     "toga-cocoa~=0.4.0",
     "std-nslog~=1.0.0"
 ]
 
-[tool.briefcase.app.srtranslator.linux]
+[tool.briefcase.app.srtranslatorGUI.linux]
 requires = [
     "toga-gtk~=0.4.0",
 ]
 
-[tool.briefcase.app.srtranslator.linux.system.debian]
+[tool.briefcase.app.srtranslatorGUI.linux.system.debian]
 system_requires = [
     # Needed to compile pycairo wheel
     "libcairo2-dev",
@@ -57,7 +58,7 @@ system_runtime_requires = [
     # "gir1.2-webkit2-4.0",
 ]
 
-[tool.briefcase.app.srtranslator.linux.system.rhel]
+[tool.briefcase.app.srtranslatorGUI.linux.system.rhel]
 system_requires = [
     # Needed to compile pycairo wheel
     "cairo-gobject-devel",
@@ -76,7 +77,7 @@ system_runtime_requires = [
     # "webkit2gtk3",
 ]
 
-[tool.briefcase.app.srtranslator.linux.system.suse]
+[tool.briefcase.app.srtranslatorGUI.linux.system.suse]
 system_requires = [
     # Needed to compile pycairo wheel
     "cairo-devel",
@@ -96,7 +97,7 @@ system_runtime_requires = [
     # "typelib(WebKit2)",
 ]
 
-[tool.briefcase.app.srtranslator.linux.system.arch]
+[tool.briefcase.app.srtranslatorGUI.linux.system.arch]
 system_requires = [
     # Needed to compile pycairo wheel
     "cairo",
@@ -123,7 +124,7 @@ system_runtime_requires = [
     # "webkit2gtk",
 ]
 
-[tool.briefcase.app.srtranslator.linux.appimage]
+[tool.briefcase.app.srtranslatorGUI.linux.appimage]
 manylinux = "manylinux2014"
 
 system_requires = [
@@ -143,30 +144,30 @@ linuxdeploy_plugins = [
     "DEPLOY_GTK_VERSION=3 gtk",
 ]
 
-[tool.briefcase.app.srtranslator.linux.flatpak]
+[tool.briefcase.app.srtranslatorGUI.linux.flatpak]
 flatpak_runtime = "org.gnome.Platform"
 flatpak_runtime_version = "44"
 flatpak_sdk = "org.gnome.Sdk"
 
-[tool.briefcase.app.srtranslator.windows]
+[tool.briefcase.app.srtranslatorGUI.windows]
 requires = [
     "toga-winforms~=0.4.0",
 ]
 
 # Mobile deployments
-[tool.briefcase.app.srtranslator.iOS]
+[tool.briefcase.app.srtranslatorGUI.iOS]
 requires = [
     "toga-iOS~=0.4.0",
     "std-nslog~=1.0.0"
 ]
 
-[tool.briefcase.app.srtranslator.android]
+[tool.briefcase.app.srtranslatorGUI.android]
 requires = [
     "toga-android~=0.4.0"
 ]
 
 # Web deployments
-[tool.briefcase.app.srtranslator.web]
+[tool.briefcase.app.srtranslatorGUI.web]
 requires = [
     "toga-web~=0.4.0",
 ]
