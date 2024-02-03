@@ -1,0 +1,54 @@
+name: Briefcase Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v[0-9].*"
+
+jobs:
+  briefcase:
+    name: Bundle on ${{ matrix.os }} / ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-2022, ubuntu-latest]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder
+        if: runner.os == 'Linux'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install briefcase
+          python -m pip install toga
+          python -m pip install srtranslator
+          python -m pip install MarkupSafe
+          python -m pip freeze
+          briefcase create
+          briefcase build
+          briefcase package
+      - run: |
+          briefcase package linux flatpak
+        if: runner.os == 'Linux'
+
+      - name: Upload Artifact for Linux
+        uses: actions/upload-artifact@v2
+        if: runner.os == 'Linux'
+        with:
+          name: ${{ github.ref_name }}-${{ matrix.os }}.flatpak
+          path: "dist/*.flatpak"
+
+      - name: Upload Artifact for Windows
+        uses: actions/upload-artifact@v2
+        if: runner.os == 'Windows'
+        with:
+          name: ${{ github.ref_name }}-${{ matrix.os }}.msi
+          path: "**/*.msi"
