@@ -78,10 +78,10 @@ class Srtranslator(toga.App):
         )
 
     async def translate_async(self, widget):
-        self.disabled = True
-        loop = asyncio.get_event_loop()
-
+        if not self.filepath:
+            return
         try:
+            loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self.translate)
         except:
             pass
