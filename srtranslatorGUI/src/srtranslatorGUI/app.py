@@ -10,107 +10,44 @@ from srtranslator.translators.deepl_api import DeeplApi
 from srtranslator.translators.deepl_scrap import DeeplTranslator
 from srtranslator.translators.translatepy import TranslatePy
 from srtranslator.translators.pydeeplx import PyDeepLX
+from .toga_from_xml import parse_layout
 
 _print = print
-
-builtin_translators = [
-    {
-        "id": "deepl-scrap",
-        "name": "DeepL Scraper",
-        "description": "Web scraper with selenium. Opens Gecodriver (firefox) to translate chunks of 1500 lines",
-        "handler": DeeplTranslator,
-    },
-    {
-        "id": "deepl-api",
-        "name": "DeepL API",
-        "description": "Uses a paid DeepL subscription to translate the files",
-        "handler": DeeplApi,
-    },
-    {
-        "id": "translatepy",
-        "name": "TranslatePy",
-        "description": "Uses TranslatePy library to translate from DeepL REST free api",
-        "handler": TranslatePy,
-    },
-    {
-        "id": "pydeeplx",
-        "name": "PyDeepLX",
-        "description": "Uses PyDeepLX library to translate from DeepL REST free api",
-        "handler": PyDeepLX,
-    },
-]
-
-languages = [
-    {"id": "auto", "name": "Any language (detect)"},
-    {"id": "bg", "name": "Bulgarian"},
-    {"id": "zh", "name": "Chinese"},
-    {"id": "cs", "name": "Czech"},
-    {"id": "da", "name": "Danish"},
-    {"id": "nl", "name": "Dutch"},
-    {"id": "en", "name": "English", "noDest": True},
-    {"id": "en-US", "name": "English (American)", "noSrc": True},
-    {"id": "en-GB", "name": "English (British)", "noSrc": True},
-    {"id": "et", "name": "Estonian"},
-    {"id": "fi", "name": "Finnish"},
-    {"id": "fr", "name": "French"},
-    {"id": "de", "name": "German"},
-    {"id": "el", "name": "Greek"},
-    {"id": "hu", "name": "Hungarian"},
-    {"id": "id", "name": "Indonesian"},
-    {"id": "it", "name": "Italian"},
-    {"id": "ja", "name": "Japanese"},
-    {"id": "ko", "name": "Korean"},
-    {"id": "lv", "name": "Latvian"},
-    {"id": "lt", "name": "Lithuanian"},
-    {"id": "pl", "name": "Polish"},
-    {"id": "pt", "name": "Portuguese", "noDest": True},
-    {"id": "pt-PT", "name": "Portuguese", "noSrc": True},
-    {"id": "pt-BR", "name": "Portuguese (Brazilian)", "noSrc": True},
-    {"id": "ro", "name": "Romanian"},
-    {"id": "ru", "name": "Russian"},
-    {"id": "sk", "name": "Slovak"},
-    {"id": "sl", "name": "Slovenian"},
-    {"id": "es", "name": "Spanish"},
-    {"id": "sv", "name": "Swedish"},
-    {"id": "tr", "name": "Turkish"},
-    {"id": "uk", "name": "Ukrainian"},
-]
 
 
 class Srtranslator(toga.App):
     filepath = ""
+    builtin_translators = [
+        {
+            "id": "deepl-scrap",
+            "name": "DeepL Scraper",
+            "description": "Web scraper with selenium. Opens Gecodriver (firefox) to translate chunks of 1500 lines",
+            "handler": DeeplTranslator,
+        },
+        {
+            "id": "deepl-api",
+            "name": "DeepL API",
+            "description": "Uses a paid DeepL subscription to translate the files",
+            "handler": DeeplApi,
+        },
+        {
+            "id": "translatepy",
+            "name": "TranslatePy",
+            "description": "Uses TranslatePy library to translate from DeepL REST free api",
+            "handler": TranslatePy,
+        },
+        {
+            "id": "pydeeplx",
+            "name": "PyDeepLX",
+            "description": "Uses PyDeepLX library to translate from DeepL REST free api",
+            "handler": PyDeepLX,
+        },
+    ]
 
     def startup(self):
-        main_box = toga.Box(
-            children=[
-                toga.Selection(
-                    items=builtin_translators, accessor="name", id="translator"
-                ),
-                toga.Selection(
-                    items=[lang for lang in languages if not lang.get("noSrc", False)],
-                    accessor="name",
-                    id="src-lang",
-                ),
-                toga.Selection(
-                    items=[lang for lang in languages if not lang.get("noDest", False)],
-                    accessor="name",
-                    id="dest-lang",
-                ),
-                toga.Label(self.filepath, id="filepath-label"),
-                toga.Button(
-                    "Choose file",
-                    on_press=self.set_filepath,
-                ),
-                toga.Button("Translate", on_press=self.translate_async),
-                toga.Label("", id="terminal"),
-            ],
-            style=Pack(direction=COLUMN),
-        )
-
-        self.main_window = toga.MainWindow(title=self.formal_name)
-        self.main_window.content = main_box
-
-        self.main_window.show()
+        with open(f"{self.paths.app}/resources/layout.xml", "r") as f:
+            self.main_window = parse_layout(self, f.read())
+            self.main_window.show()
 
     async def set_filepath(self, widget):
         self.filepath = await self.open_file_dialog()
@@ -134,7 +71,7 @@ class Srtranslator(toga.App):
         return next(
             (
                 translator["handler"]()
-                for translator in builtin_translators
+                for translator in self.builtin_translators
                 if translator["id"] == self.widgets["translator"].value.id
             ),
             None,
