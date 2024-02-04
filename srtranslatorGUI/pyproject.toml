@@ -22,7 +22,8 @@ test_sources = [
 ]
 
 requires = [
-    "srtranslator"
+    "srtranslator",
+    "togax-xml-layout-plugin"
 ]
 test_requires = [
     "pytest",
