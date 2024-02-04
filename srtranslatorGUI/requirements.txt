@@ -72,6 +72,7 @@ text-unidecode==1.3
 toga==0.4.1
 toga-core==0.4.1
 toga-gtk==0.4.1
+togax-xml-layout-plugin==0.0.2
 tomli_w==1.0.0
 tqdm==4.64.1
 translatepy==2.3
