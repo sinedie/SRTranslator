@@ -28,7 +28,7 @@ jobs:
       - run: |
           cd srtranslatorGUI
           python -m pip install --upgrade pip
-          python -m pip -r requirements.txt
+          python -m pip install -r requirements.txt
           python -m pip freeze
           briefcase create
           briefcase build
