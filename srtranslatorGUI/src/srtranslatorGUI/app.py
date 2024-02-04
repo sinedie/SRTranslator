@@ -74,9 +74,13 @@ class Srtranslator(toga.App):
             pass
 
     def get_translator(self):
+        translator_args = {}
+        if self.widgets["translator"].value.id == "deepl-api":
+            translator_args["api_key"] = self.widgets["api-token"].value
+
         return next(
             (
-                translator["handler"]()
+                translator["handler"](**translator_args)
                 for translator in self.builtin_translators
                 if translator["id"] == self.widgets["translator"].value.id
             ),
