@@ -39,15 +39,13 @@ jobs:
         if: runner.os == 'Linux'
 
       - name: Upload Artifact for Linux
-        working-directory: ./srtranslatorGUI
         uses: actions/upload-artifact@v2
         if: runner.os == 'Linux'
         with:
           name: ${{ github.ref_name }}-${{ matrix.os }}.flatpak
-          path: "dist/*.flatpak"
+          path: "srtranslatorGUI/dist/*.flatpak"
 
       - name: Upload Artifact for Windows
-        working-directory: ./srtranslatorGUI
         uses: actions/upload-artifact@v2
         if: runner.os == 'Windows'
         with:
