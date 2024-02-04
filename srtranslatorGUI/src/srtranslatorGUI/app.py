@@ -12,7 +12,7 @@ from srtranslator.translators.deepl_api import DeeplApi
 from srtranslator.translators.deepl_scrap import DeeplTranslator
 from srtranslator.translators.translatepy import TranslatePy
 from srtranslator.translators.pydeeplx import PyDeepLX
-from .toga_from_xml import parse_layout
+from togax_xml_layout import parse_layout
 
 _print = print
 
