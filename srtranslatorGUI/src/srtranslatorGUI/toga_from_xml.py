@@ -60,6 +60,16 @@ def get_element_attrs(app, element):
             attributes[key] = float(value)
             continue
 
+        # Handling false values
+        if value.strip() == "false":
+            attributes[key] = False
+            continue
+
+        # Handling true values
+        if value.strip() == "true":
+            attributes[key] = True
+            continue
+
         # Handling styles
         if key == "style":
             style = {}
