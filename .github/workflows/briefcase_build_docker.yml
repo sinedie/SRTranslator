@@ -26,11 +26,9 @@ jobs:
         with:
           python-version: "3.10"
       - run: |
+          cd srtranslatorGUI
           python -m pip install --upgrade pip
-          python -m pip install briefcase
-          python -m pip install toga
-          python -m pip install srtranslator
-          python -m pip install MarkupSafe
+          python -m pip -r requirements.txt
           python -m pip freeze
           briefcase create
           briefcase build
