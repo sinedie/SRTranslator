@@ -18,7 +18,6 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: srtranslatorGUI
     steps:
       - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder
         if: runner.os == 'Linux'
@@ -27,6 +26,7 @@ jobs:
         with:
           python-version: "3.10"
       - run: |
+          cd srtranslatorGUI
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip freeze
@@ -34,10 +34,12 @@ jobs:
           briefcase build
           briefcase package
       - run: |
+          cd srtranslatorGUI
           briefcase package linux flatpak
         if: runner.os == 'Linux'
 
       - name: Upload Artifact for Linux
+        working-directory: ./srtranslatorGUI
         uses: actions/upload-artifact@v2
         if: runner.os == 'Linux'
         with:
@@ -45,6 +47,7 @@ jobs:
           path: "dist/*.flatpak"
 
       - name: Upload Artifact for Windows
+        working-directory: ./srtranslatorGUI
         uses: actions/upload-artifact@v2
         if: runner.os == 'Windows'
         with:
