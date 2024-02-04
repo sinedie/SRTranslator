@@ -1,7 +1,9 @@
 import os
+import glob
 import toga
 import asyncio
 import builtins
+import traceback
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 from srtranslator.srt_file import SrtFile
@@ -16,7 +18,6 @@ _print = print
 
 
 class Srtranslator(toga.App):
-    filepath = ""
     builtin_translators = [
         {
             "id": "deepl-scrap",
@@ -50,22 +51,27 @@ class Srtranslator(toga.App):
             self.main_window.show()
 
     async def set_filepath(self, widget):
-        self.filepath = await self.open_file_dialog()
-        self.widgets["filepath-label"].text = self.filepath
+        self.widgets["filepath"].value = await self.open_file_dialog()
 
-    async def open_file_dialog(self):
+    async def set_folder(self, widget):
+        self.widgets["filepath"].value = await self.open_file_dialog(folder=True)
+
+    async def open_file_dialog(self, folder=False):
+        if folder:
+            return await self.main_window.select_folder_dialog(
+                "Select folder",
+            )
+
         return await self.main_window.open_file_dialog(
-            "title",
-            initial_directory=None,
-            multiple_select=False,
+            "Select file",
             file_types=["srt", "ass"],
         )
 
-    def get_source_language(self):
-        return self.widgets["src-lang"].value.id
-
-    def get_target_language(self):
-        return self.widgets["dest-lang"].value.id
+    def handle_translator_change(self, widget):
+        try:
+            self.widgets["api-token"].enabled = widget.value.id == "deepl-api"
+        except:
+            pass
 
     def get_translator(self):
         return next(
@@ -78,47 +84,64 @@ class Srtranslator(toga.App):
         )
 
     async def translate_async(self, widget):
-        if not self.filepath:
+        filepath = self.widgets["filepath"].value
+        if not filepath or not os.path.exists(filepath):
             return
 
-        self.widgets["loading-indicator"].start()
-        for widget in self.widgets:
-            widget.enabled = False
+        self.set_loading(True)
 
         try:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, self.translate)
         except:
-            pass
+            traceback.print_exc()
 
-        self.widgets["loading-indicator"].stop()
+        self.set_loading(False)
+
+    def set_loading(self, loading):
+        if loading:
+            self.widgets["loading-indicator"].start()
+        else:
+            self.widgets["loading-indicator"].stop()
+
         for widget in self.widgets:
-            widget.enabled = True
+            widget.enabled = not loading
+
+    def translate_file(self, translator, filepath):
+        src_lang = self.widgets["src-lang"].value.id
+        dest_lang = self.widgets["dest-lang"].value.id
+        wrap_limit = self.widgets["wrap_limit"].value
+
+        try:
+            sub = AssFile(filepath)
+        except AttributeError:
+            print("... Exception while loading as ASS try as SRT")
+            sub = SrtFile(filepath)
+
+        try:
+            sub.translate(translator, src_lang, dest_lang)
+            sub.wrap_lines(wrap_limit)
+
+            filename = os.path.splitext(filepath)
+            sub.save(f"{filename[0]}_{dest_lang}{filename[1]}")
+        except:
+            sub.save_backup()
+            traceback.print_exc()
 
     def translate(self):
         translator = self.get_translator()
         if translator is None:
             return
 
-        wrap_limit = 50
-        src_lang = self.get_source_language()
-        dest_lang = self.get_target_language()
+        filepath = self.widgets["filepath"].value
 
-        try:
-            sub = AssFile(self.filepath)
-        except AttributeError:
-            print("... Exception while loading as ASS try as SRT")
-            sub = SrtFile(self.filepath)
-
-        try:
-            sub.translate(translator, src_lang, dest_lang)
-            sub.wrap_lines(wrap_limit)
-
-            filename = os.path.splitext(self.filepath)
-            sub.save(f"{filename[0]}_{dest_lang}{filename[1]}")
-        except:
-            sub.save_backup()
-            traceback.print_exc()
+        if os.path.isdir(filepath):
+            for f in glob.glob(os.path.join(filepath, "**/*.ass"), recursive=True):
+                self.translate_file(translator, f)
+            for f in glob.glob(os.path.join(filepath, "**/*.srt"), recursive=True):
+                self.translate_file(translator, f)
+        else:
+            self.translate_file(translator, filepath)
 
         translator.quit()
 
