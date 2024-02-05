@@ -16,7 +16,7 @@ jobs:
         os: [windows-2022, ubuntu-latest]
       fail-fast: false
     steps:
-      - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder gobject-introspection-devel cairo-gobject-devel gtk3-devel
+      - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder
         if: runner.os == 'Linux'
 
       - uses: actions/checkout@v4
@@ -47,12 +47,6 @@ jobs:
           briefcase package linux
         if: runner.os == 'Linux'
 
-      - name: Package Linux .appimage
-        run: |
-          cd srtranslatorGUI
-          briefcase package linux appimage
-        if: runner.os == 'Linux'
-
       - name: Package Linux flatpak
         run: |
           cd srtranslatorGUI
@@ -65,13 +59,6 @@ jobs:
         with:
           name: ${{ github.ref_name }}-${{ matrix.os }}.deb
           path: "srtranslatorGUI/dist/*.deb"
-
-      - name: Upload .appimage Artifact for Linux
-        uses: actions/upload-artifact@v2
-        if: runner.os == 'Linux'
-        with:
-          name: ${{ github.ref_name }}-${{ matrix.os }}.appimage
-          path: "srtranslatorGUI/dist/*.appimage"
 
       - name: Upload flatpack Artifact for Linux
         uses: actions/upload-artifact@v2
