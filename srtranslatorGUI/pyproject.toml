@@ -22,6 +22,7 @@ test_sources = [
 ]
 
 requires = [
+    "toga",
     "srtranslator",
     "togax-xml-layout-plugin"
 ]
