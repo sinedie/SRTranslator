@@ -63,6 +63,23 @@ translator.quit()
 
 ## Usage from GUI
 
+[Last release](https://github.com/sinedie/SRTranslator/releases/tag/v0.3.7) has installers for the official srtranslatorGUI on windows (.msi) and linux (.deb, .flatpak)
+
+#### Package from source
+
+In folder srtranslatorGUI there is a briefcase/toga GUI implementation in top of the translator core. You could create your own binary with:
+
+```
+cd srtranslatorGUI
+pip install briefcase
+briefcase create
+briefcase build
+briefcase package
+```
+
+Binaries found in ```dist``` folder
+
+#### Alternatives
 [KryptoST](https://github.com/KryptoST) has made a graphical user interface. You can check it out [here](https://github.com/KryptoST/SRTranslatorGUI)
 
 ## Usage command line
