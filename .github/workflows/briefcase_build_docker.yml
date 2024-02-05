@@ -16,8 +16,9 @@ jobs:
         os: [windows-2022, ubuntu-latest]
       fail-fast: false
     steps:
-      - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder
+      - run: sudo apt install libgirepository1.0-dev flatpak flatpak-builder gobject-introspection-devel cairo-gobject-devel gtk3-devel
         if: runner.os == 'Linux'
+
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
