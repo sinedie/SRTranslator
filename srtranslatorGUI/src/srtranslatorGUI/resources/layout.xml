@@ -303,7 +303,6 @@
 		</ScrollContainer>
 		<ScrollContainer style="flex:2;">
 			<Box style="direction: column; padding: 10;">
-				<ActivityIndicator id="loading-indicator" />
 				<Label id="terminal" text=""></Label>
 			</Box>
 		</ScrollContainer>

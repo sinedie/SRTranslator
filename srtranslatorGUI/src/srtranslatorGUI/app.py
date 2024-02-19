@@ -103,11 +103,6 @@ class Srtranslator(toga.App):
         self.set_loading(False)
 
     def set_loading(self, loading):
-        if loading:
-            self.widgets["loading-indicator"].start()
-        else:
-            self.widgets["loading-indicator"].stop()
-
         for widget in self.widgets:
             widget.enabled = not loading
 
