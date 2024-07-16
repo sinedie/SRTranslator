@@ -22,6 +22,9 @@ class DeeplTranslator(Translator):
     languages = {
         "auto": "Any language (detect)",
         "bg": "Bulgarian",
+        "zh": "Chinese",  # Only usable for source language
+        "zh-Hans": "Chinese (Simplified)",  # Only usable for destination language
+        "zh-Hant": "Chinese (Traditional)",  # Only usable for destination language
         "zh": "Chinese",
         "cs": "Czech",
         "da": "Danish",
