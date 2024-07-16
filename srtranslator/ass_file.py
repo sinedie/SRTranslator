@@ -5,6 +5,7 @@ import pyass
 from typing import List, Generator
 
 from .translators.base import Translator
+from .util import show_progress
 
 
 class AssFile:
@@ -47,7 +48,7 @@ class AssFile:
             ]
 
     def load_from_file(self, input_file):
-        ass_file        = pyass.load(input_file)
+        ass_file = pyass.load(input_file)
         ass_file.events = sorted(ass_file.events, key=lambda e: (e.start))
         return self._clean_subs_content(ass_file)
 
@@ -108,7 +109,7 @@ class AssFile:
         for sub in subtitles.events:
             sub.text = cleanr.sub("", sub.text)
             # No real equivalent in ASS
-            #sub.text = srt.make_legal_content(sub.content)
+            # sub.text = srt.make_legal_content(sub.content)
             sub.text = sub.text.strip()
 
             if sub.text == "":
@@ -152,12 +153,10 @@ class AssFile:
             destination_language (str): Destination language (must be coherent with your translator)
             source_language (str): Source language (must be coherent with your translator)
         """
+        print("Starting translation")
 
         # For each chunk of the file (based on the translator capabilities)
         for subs_slice in self._get_next_chunk(translator.max_char):
-            progress = int(100 * self.current_subtitle / len(self.subtitles.events))
-            print(f"... Translating {progress} %")
-
             # Put chunk in a single text with break lines
             text = [sub.text for sub in subs_slice]
             text = "\n".join(text)
@@ -183,6 +182,8 @@ class AssFile:
             for i in range(len(subs_slice)):
                 subs_slice[i].text = translation[i]
                 self.current_subtitle += 1
+
+            show_progress(len(self.subtitles.events), progress=self.current_subtitle)
 
         print(f"... Translation done")
 
