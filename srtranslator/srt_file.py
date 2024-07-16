@@ -6,6 +6,7 @@ from srt import Subtitle
 from typing import List, Generator
 
 from .translators.base import Translator
+from .util import show_progress
 
 
 class SrtFile:
@@ -167,12 +168,10 @@ class SrtFile:
             destination_language (str): Destination language (must be coherent with your translator)
             source_language (str): Source language (must be coherent with your translator)
         """
+        print("Starting translation")
 
         # For each chunk of the file (based on the translator capabilities)
         for subs_slice in self._get_next_chunk(translator.max_char):
-            progress = int(100 * self.current_subtitle / len(self.subtitles))
-            print(f"... Translating {progress} %")
-
             # Put chunk in a single text with break lines
             text = [sub.content for sub in subs_slice]
             text = "\n".join(text)
@@ -187,6 +186,8 @@ class SrtFile:
             for i in range(len(subs_slice)):
                 subs_slice[i].content = translation[i]
                 self.current_subtitle += 1
+
+            show_progress(len(self.subtitles), progress=self.current_subtitle)
 
         print(f"... Translation done")
 
