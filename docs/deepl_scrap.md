@@ -33,7 +33,9 @@ python -m srtranslator --translator deepl-scrap -i src_lang -o target_lang /path
 ```
 auto : Any language (detect)
 bg : Bulgarian
-zh : Chinese
+zh : Chinese -Only for source language-
+zh-Hans : Chinese (Simplified) -Only usable for destination language-
+zh-Hant : Chinese (Traditional) -Only usable for destination language-
 cs : Czech
 da : Danish
 nl : Dutch
