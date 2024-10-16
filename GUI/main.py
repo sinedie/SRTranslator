@@ -305,6 +305,7 @@ def handle_translation(
         try:
             process.translate()
         except:
+            process.close_button.disabled = False
             process.progress_bar.value = 1
             process.progress_bar.color = "red"
             page.update()
