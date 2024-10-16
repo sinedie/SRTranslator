@@ -2,7 +2,7 @@ deepl==1.19.1
 free_proxy==1.1.2
 pyass==0.1.4
 translatepy==2.3
-selenium==4.25.0
+selenium==4.7.2
 srt==3.5.3
 PyDeepLX==1.0.7
 webdriverdownloader==1.1.0.4
