@@ -16,12 +16,13 @@ class SrtFile:
         filepath (str): file path of srt
     """
 
-    def __init__(self, filepath: str) -> None:
+    def __init__(self, filepath: str, progress_callback=show_progress) -> None:
         self.filepath = filepath
         self.backup_file = f"{self.filepath}.tmp"
         self.subtitles = []
         self.start_from = 0
         self.current_subtitle = 0
+        self.progress_callback = progress_callback
 
         print(f"Loading {filepath} as SRT")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
@@ -187,7 +188,7 @@ class SrtFile:
                 subs_slice[i].content = translation[i]
                 self.current_subtitle += 1
 
-            show_progress(len(self.subtitles), progress=self.current_subtitle)
+            self.progress_callback(len(self.subtitles), progress=self.current_subtitle)
 
         print(f"... Translation done")
 
