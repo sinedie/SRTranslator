@@ -1,2 +1,2 @@
-flet==0.22.*
-srtranslator
+flet==0.24.1
+srtranslator==0.3.9
