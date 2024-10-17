@@ -15,13 +15,14 @@ class AssFile:
         filepath (str): file path of ass
     """
 
-    def __init__(self, filepath: str) -> None:
+    def __init__(self, filepath: str, progress_callback=show_progress) -> None:
         self.filepath = filepath
         self.backup_file = f"{self.filepath}.tmp"
         self.subtitles = []
         self.start_from = 0
         self.current_subtitle = 0
         self.text_styles = []
+        self.progress_callback = progress_callback
 
         print(f"Loading {filepath} as ASS")
         with open(filepath, "r", encoding="utf-8", errors="ignore") as input_file:
@@ -183,7 +184,9 @@ class AssFile:
                 subs_slice[i].text = translation[i]
                 self.current_subtitle += 1
 
-            show_progress(len(self.subtitles.events), progress=self.current_subtitle)
+            self.progress_callback(
+                len(self.subtitles.events), progress=self.current_subtitle
+            )
 
         print(f"... Translation done")
 

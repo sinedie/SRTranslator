@@ -1,0 +1,2 @@
+flet==0.24.1
+srtranslator==0.3.9

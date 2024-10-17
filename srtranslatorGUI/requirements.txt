@@ -1,5 +1,0 @@
-asyncio==3.4.3
-briefcase==0.3.16
-srtranslator==0.3.6
-toga==0.4.1
-togax-xml-layout-plugin==0.0.2
