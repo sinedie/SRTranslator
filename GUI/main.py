@@ -281,6 +281,9 @@ def handle_translation(
     dest_lang: str,
     wrap_limit: str,
 ):
+    if not path_field_input.value:
+        return
+
     files = []
     for filepath in path_field_input.value.split(","):
         if not os.path.isdir(filepath):
