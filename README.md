@@ -63,23 +63,28 @@ translator.quit()
 
 ## Usage from GUI
 
-[Last release](https://github.com/sinedie/SRTranslator/releases/tag/v0.3.7) has installers for the official srtranslatorGUI on windows (.msi) and linux (.deb, .flatpak)
+Since release V0.3.9 there is a new GUI powered by flet (a python-flutter framework) on folder ./GUI
+
+![image](./GUI/assets/screen_shot.png)
+
+There is an artifact for linux and windows in the lastest github actions run.
 
 #### Package from source
 
-In folder srtranslatorGUI there is a briefcase/toga GUI implementation in top of the translator core. You could create your own binary with:
+if you prefer to pack your own you could go to GUI folder, install the requirements and run `flet pack main.py` and copy assets folder
 
 ```
-cd srtranslatorGUI
-pip install briefcase
-briefcase create
-briefcase build
-briefcase package
+cd ./GUI
+pip install -r requirements.txt
+pip install pyinstaller
+flet pack main.py
+cp -r ./assets ./dist/assets
 ```
 
-Binaries found in ```dist``` folder
+Binaries found in `dist` folder
 
 #### Alternatives
+
 [KryptoST](https://github.com/KryptoST) has made a graphical user interface. You can check it out [here](https://github.com/KryptoST/SRTranslatorGUI)
 
 ## Usage command line
