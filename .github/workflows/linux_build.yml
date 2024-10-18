@@ -26,11 +26,9 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Change folder
-        working-directory: ./GUI
-
       - name: Install Python Dependencies
         run: |
+          working-directory: ./GUI
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
