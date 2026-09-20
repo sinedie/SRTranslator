@@ -3,10 +3,15 @@ import re
 import srt
 
 from srt import Subtitle
-from typing import List, Generator
+from typing import List, Generator, Optional
 
 from .translators.base import Translator
-from .util import show_progress
+from .util import (
+    CONTEXT_BUDGETS,
+    MAX_REQUEST_BODY_BYTES,
+    clean_context_line,
+    show_progress,
+)
 
 
 class SrtFile:
@@ -35,9 +40,7 @@ class SrtFile:
             return
 
         print(f"Backup file found = {self.backup_file}")
-        with open(
-            self.backup_file, "r", encoding="utf-8", errors="ignore"
-        ) as input_file:
+        with open(self.backup_file, "r", encoding="utf-8", errors="ignore") as input_file:
             subtitles = self.load_from_file(input_file)
 
             self.start_from = len(subtitles)
@@ -142,10 +145,7 @@ class SrtFile:
         wraped_lines = []
         for word in text.split():
             # Check if inserting a word in the last sentence goes beyond the wrap limit
-            if (
-                len(wraped_lines) != 0
-                and len(wraped_lines[-1]) + len(word) < line_wrap_limit
-            ):
+            if len(wraped_lines) != 0 and len(wraped_lines[-1]) + len(word) < line_wrap_limit:
                 # If not, add it to it
                 wraped_lines[-1] += f" {word}"
                 continue
@@ -186,13 +186,17 @@ class SrtFile:
         chunk_end_idx: int,
         scene_start_idx: int,
         scene_end_idx: int,
-        max_history_chars_before: int = 2000,
-        max_history_chars_after: int = 1000,
+        chunk_lines: Optional[List[str]] = None,
+        max_history_chars_before: int = 4000,
+        max_history_chars_after: int = 2000,
         max_summary_chars: int = 2000,
-    ) -> str | None:
-        """Build DeepL context parameter (llm-subtrans style).
+    ) -> Optional[str]:
+        """Build the DeepL context parameter for one chunk.
 
-        Context contains ONLY surrounding lines in source language, NOT the current chunk.
+        DeepL translates every entry of a text list independently, so entries
+        never see each other. Only `context` is shared. The current chunk is
+        therefore repeated here, alongside the surrounding dialogue, all in the
+        source language. Context is not billed.
 
         Args:
             scene_index: Current scene number
@@ -200,19 +204,24 @@ class SrtFile:
             chunk_end_idx: Last subtitle index in current chunk
             scene_start_idx: First subtitle index in current scene
             scene_end_idx: Last subtitle index in current scene
+            chunk_lines: Source lines of the current chunk
             max_history_chars_before: Max chars for previous dialogue
             max_history_chars_after: Max chars for upcoming dialogue
             max_summary_chars: Max chars for distant scene summary
 
         Returns:
-            str: Formatted context string for DeepL
+            str: Formatted context string for DeepL, or None when empty
         """
+        # Never use already translated lines (restored from a .tmp backup) as
+        # source-language context.
+        history_floor = max(scene_start_idx, self.start_from)
+
         # Build history_before: walk backwards from chunk_start_idx - 1
         history_before_lines = []
         current_before_chars = 0
 
-        for i in range(chunk_start_idx - 1, scene_start_idx - 1, -1):
-            line_content = self.subtitles[i].content.strip()
+        for i in range(chunk_start_idx - 1, history_floor - 1, -1):
+            line_content = clean_context_line(self.subtitles[i].content)
             if not line_content or line_content == "...":
                 continue
 
@@ -223,9 +232,7 @@ class SrtFile:
             if current_before_chars + line_length > max_history_chars_before:
                 break
 
-            history_before_lines.insert(
-                0, formatted_line
-            )  # Prepend to keep chronological
+            history_before_lines.insert(0, formatted_line)  # Prepend to keep chronological
             current_before_chars += line_length
 
         # Build history_after: walk forwards from chunk_end_idx + 1
@@ -233,7 +240,7 @@ class SrtFile:
         current_after_chars = 0
 
         for i in range(chunk_end_idx + 1, scene_end_idx + 1):
-            line_content = self.subtitles[i].content.strip()
+            line_content = clean_context_line(self.subtitles[i].content)
             if not line_content or line_content == "...":
                 continue
 
@@ -248,26 +255,31 @@ class SrtFile:
 
         # Optional: Build scene summary for very distant history
         scene_summary_lines = []
-        if chunk_start_idx - scene_start_idx > len(history_before_lines) + 5:
+        if max_summary_chars and chunk_start_idx - history_floor > len(history_before_lines) + 5:
             # There's distant history not captured in history_before
             summary_chars = 0
-            for i in range(
-                scene_start_idx, chunk_start_idx - len(history_before_lines)
-            ):
-                line_content = self.subtitles[i].content.strip()
+            for i in range(history_floor, chunk_start_idx - len(history_before_lines)):
+                line_content = clean_context_line(self.subtitles[i].content)
                 if not line_content or line_content == "...":
                     continue
 
                 # Truncate each line for summary (first 50 chars)
-                truncated = line_content[:50] + (
-                    "..." if len(line_content) > 50 else ""
-                )
+                truncated = line_content[:50] + ("..." if len(line_content) > 50 else "")
                 summary_chars += len(truncated) + 1
 
                 if summary_chars > max_summary_chars:
                     break
 
                 scene_summary_lines.append(truncated)
+
+        # Lines of the current chunk, so each independently translated entry
+        # can see the rest of its own chunk.
+        current_lines = []
+        for offset, line in enumerate(chunk_lines or []):
+            line_content = clean_context_line(line)
+            if not line_content or line_content == "...":
+                continue
+            current_lines.append(f"{chunk_start_idx + offset + 1}. {line_content}")
 
         # Compose final context string
         context_parts = []
@@ -283,12 +295,49 @@ class SrtFile:
             context_parts.append("\nPrevious dialogue:")
             context_parts.append("\n".join(history_before_lines))
 
+        # Add the chunk being translated
+        if current_lines:
+            context_parts.append("\nCurrent dialogue:")
+            context_parts.append("\n".join(current_lines))
+
         # Add upcoming dialogue
         if history_after_lines:
             context_parts.append("\nUpcoming dialogue:")
             context_parts.append("\n".join(history_after_lines))
 
         return "\n".join(context_parts) if len(context_parts) > 1 else None
+
+    def _context_for_chunk(
+        self,
+        scene_index: int,
+        chunk_start_idx: int,
+        chunk_end_idx: int,
+        scene_start_idx: int,
+        scene_end_idx: int,
+        chunk_lines: List[str],
+    ) -> Optional[str]:
+        """Build context, shrinking it until the request body fits."""
+        text_bytes = sum(len(line.encode("utf-8")) for line in chunk_lines)
+
+        context = None
+        for before, after, summary in CONTEXT_BUDGETS:
+            context = self._build_deepl_context(
+                scene_index,
+                chunk_start_idx,
+                chunk_end_idx,
+                scene_start_idx,
+                scene_end_idx,
+                chunk_lines,
+                before,
+                after,
+                summary,
+            )
+            if context is None:
+                return None
+            if text_bytes + len(context.encode("utf-8")) <= MAX_REQUEST_BODY_BYTES:
+                return context
+
+        return context
 
     def translate(
         self,
@@ -338,26 +387,22 @@ class SrtFile:
             # Build text array (only lines to translate)
             text = [sub.content for sub in subs_slice]
 
-            # Build DeepL context (surrounding lines, NOT current chunk)
-            current_context = self._build_deepl_context(
+            # Build DeepL context (surrounding lines plus the current chunk)
+            current_context = self._context_for_chunk(
                 scene_idx,
                 chunk_start_idx,
                 chunk_end_idx,
                 scene_start_idx,
                 scene_end_idx,
+                text,
             )
 
             # Debug output
-            if os.environ.get("DEBUG_CONTEXT"):
-                if current_context:
-                    print(f"\n{'=' * 60}")
-                    print(
-                        f"[Chunk {chunk_num}] Lines {chunk_start_idx + 1}-{chunk_end_idx + 1}"
-                    )
-                    print(f"Context:\n{current_context}")
-                    print(f"{'=' * 60}")
-                else:
-                    print(f"\n[Chunk {chunk_num}] No context (start of scene)")
+            if os.environ.get("DEBUG_CONTEXT") and current_context:
+                print(f"\n{'=' * 60}")
+                print(f"[Chunk {chunk_num}] Lines {chunk_start_idx + 1}-{chunk_end_idx + 1}")
+                print(f"Context:\n{current_context}")
+                print(f"{'=' * 60}")
 
             # Translate with context
             translation = translator.translate(

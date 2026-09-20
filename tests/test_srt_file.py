@@ -114,3 +114,116 @@ def test_build_deepl_context_includes_neighbors(tmp_path):
     assert context_scene_two is not None
     assert "Upcoming dialogue" in context_scene_two
     assert "4. Follow up" in context_scene_two
+
+
+def build_scene_srt(tmp_path):
+    subtitles = [
+        srt.Subtitle(1, timedelta(seconds=0), timedelta(seconds=1), "Intro"),
+        srt.Subtitle(2, timedelta(seconds=1), timedelta(seconds=2), "Question"),
+        srt.Subtitle(3, timedelta(seconds=2), timedelta(seconds=3), "Answer"),
+        srt.Subtitle(4, timedelta(seconds=3), timedelta(seconds=4), "Follow up"),
+    ]
+    path = write_sample_srt(tmp_path, srt.compose(subtitles))
+    return SrtFile(str(path))
+
+
+def test_context_includes_current_chunk(tmp_path):
+    srt_file = build_scene_srt(tmp_path)
+
+    context = srt_file._build_deepl_context(
+        scene_index=0,
+        chunk_start_idx=1,
+        chunk_end_idx=2,
+        scene_start_idx=0,
+        scene_end_idx=3,
+        chunk_lines=["Question", "Answer"],
+    )
+
+    assert "Current dialogue" in context
+    assert "2. Question" in context
+    assert "3. Answer" in context
+    # Surrounding lines are still there
+    assert "1. Intro" in context
+    assert "4. Follow up" in context
+
+
+def test_context_at_scene_start_is_not_none(tmp_path):
+    srt_file = build_scene_srt(tmp_path)
+
+    context = srt_file._build_deepl_context(
+        scene_index=0,
+        chunk_start_idx=0,
+        chunk_end_idx=0,
+        scene_start_idx=0,
+        scene_end_idx=0,
+        chunk_lines=["Intro"],
+    )
+
+    assert context is not None
+    assert "1. Intro" in context
+
+
+def test_context_strips_dialog_placeholder(tmp_path):
+    subtitles = [
+        srt.Subtitle(1, timedelta(seconds=0), timedelta(seconds=1), "-Yes\n-No"),
+        srt.Subtitle(2, timedelta(seconds=1), timedelta(seconds=2), "Later"),
+    ]
+    path = write_sample_srt(tmp_path, srt.compose(subtitles))
+    srt_file = SrtFile(str(path))
+
+    context = srt_file._build_deepl_context(
+        scene_index=0,
+        chunk_start_idx=1,
+        chunk_end_idx=1,
+        scene_start_idx=0,
+        scene_end_idx=1,
+        chunk_lines=["Later"],
+    )
+
+    assert "////" not in context
+    assert "1. -Yes -No" in context
+
+
+def test_context_skips_already_translated_lines_on_resume(tmp_path):
+    srt_file = build_scene_srt(tmp_path)
+    # Simulate a resumed run: the first two lines hold translated text
+    srt_file.start_from = 2
+
+    context = srt_file._build_deepl_context(
+        scene_index=0,
+        chunk_start_idx=2,
+        chunk_end_idx=2,
+        scene_start_idx=0,
+        scene_end_idx=3,
+        chunk_lines=["Answer"],
+    )
+
+    assert "Previous dialogue" not in context
+    assert "Intro" not in context
+    assert "Question" not in context
+    assert "3. Answer" in context
+
+
+def test_context_for_chunk_shrinks_to_fit_request_body(tmp_path):
+    long_line = "A" * 5000
+    subtitles = [
+        srt.Subtitle(i + 1, timedelta(seconds=i), timedelta(seconds=i + 0.5), long_line)
+        for i in range(40)
+    ]
+    path = write_sample_srt(tmp_path, srt.compose(subtitles))
+    srt_file = SrtFile(str(path))
+
+    chunk_lines = [long_line]
+    context = srt_file._context_for_chunk(0, 30, 30, 0, 39, chunk_lines)
+
+    body = len(context.encode("utf-8")) + len(long_line.encode("utf-8"))
+    assert body <= 120_000
+
+
+def test_clean_context_line_strips_ass_line_breaks():
+    from srtranslator.util import clean_context_line
+
+    assert clean_context_line("Hello\\Nworld") == "Hello world"
+    # Mangled backslash run produced by the ASS cleaner
+    assert clean_context_line("read \\\\ \\to sail.") == "read to sail."
+    assert clean_context_line("-Yes////-No") == "-Yes -No"

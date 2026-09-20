@@ -111,8 +111,29 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model-type",
         type=str,
-        choices=["latency_optimized", "quality_optimized", "prefer_quality_optimized"],
-        help="Model type for DeepL translation (only for deepl-api)",
+        choices=["quality_optimized", "latency_optimized", "prefer_quality_optimized"],
+        default="quality_optimized",
+        help=(
+            "DeepL model type (only for deepl-api). quality_optimized is the "
+            "next-generation model and the default. latency_optimized is the "
+            "faster classic model. prefer_quality_optimized is a legacy alias "
+            "of quality_optimized. Default: quality_optimized"
+        ),
+    )
+
+    parser.add_argument(
+        "--instruction",
+        type=str,
+        action="append",
+        dest="custom_instructions",
+        metavar="TEXT",
+        help=(
+            "DeepL custom instruction, repeatable (only for deepl-api). At most "
+            "10 instructions of 300 characters each. Supported for target "
+            "languages de, en, es, fr, it, ja, ko and zh only; ignored with a "
+            "warning for any other target. Cannot be combined with "
+            "--model-type latency_optimized"
+        ),
     )
 
     return parser
@@ -165,10 +186,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.translator == "deepl-api":
         if args.context:
             translator_args["context"] = args.context
-        if args.model_type:
-            translator_args["model_type"] = args.model_type
+        translator_args["model_type"] = args.model_type
+        if args.custom_instructions:
+            if len(args.custom_instructions) > 10:
+                parser.error("--instruction can be used at most 10 times")
+            translator_args["custom_instructions"] = args.custom_instructions
+    elif args.custom_instructions:
+        parser.error("--instruction is only supported by the deepl-api translator")
 
-    translator = BUILTIN_TRANSLATORS[args.translator](**translator_args)
+    try:
+        translator = BUILTIN_TRANSLATORS[args.translator](**translator_args)
+    except ValueError as error:
+        parser.error(str(error))
+
     sub = None
     try:
         sub = load_subtitle(args.filepath)

@@ -1,4 +1,4 @@
-deepl>=1.25.0
+deepl>=1.32.0
 free_proxy==1.1.2
 pyass==0.1.4
 translatepy==2.3

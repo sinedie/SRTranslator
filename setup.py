@@ -14,7 +14,7 @@ setup(
     author="EAR",
     author_email="sinedie@protonmail.com",
     license="FREE",
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=requirements,
     packages=find_packages(),
     entry_points={

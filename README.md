@@ -85,7 +85,7 @@ srtranslator ./filepath/to/ass -i SRC_LANG -o DEST_LANG
 ## Advanced usage
 
 ```
-usage: srtranslator [-h] [-i SRC_LANG] [-o DEST_LANG] [-v] [-vv] [-s] [-w WRAP_LIMIT] [-t {deepl-scrap,translatepy,deepl-api,pydeeplx}] [--auth AUTH] [--proxies] [--context CONTEXT] [--model-type {latency_optimized,quality_optimized,prefer_quality_optimized}] path
+usage: srtranslator [-h] [-i SRC_LANG] [-o DEST_LANG] [-v] [-vv] [-s] [-w WRAP_LIMIT] [-t {deepl-scrap,translatepy,deepl-api,pydeeplx}] [--auth AUTH] [--proxies] [--context CONTEXT] [--model-type {quality_optimized,latency_optimized,prefer_quality_optimized}] [--instruction TEXT] path
 
 Translate an .STR and .ASS file
 
@@ -107,4 +107,32 @@ options:
                         Built-in translator to use
   --auth AUTH           Api key if needed on translator
   --proxies             Use proxy by default for pydeeplx
+  --context CONTEXT     Context for DeepL translation (only for deepl-api)
+  --model-type {quality_optimized,latency_optimized,prefer_quality_optimized}
+                        DeepL model type. Default: quality_optimized
+  --instruction TEXT    DeepL custom instruction, repeatable (only for deepl-api)
+```
+
+### DeepL API options
+
+The `deepl-api` translator uses DeepL's next-generation model
+(`--model-type quality_optimized`) by default. Pass `--model-type
+latency_optimized` for the faster classic model.
+
+Every chunk is sent with a `context` parameter holding the surrounding dialogue
+and the chunk's own lines in the source language. DeepL translates each line of
+a chunk independently and shares only `context` between them, so repeating the
+chunk there is what lets a line see its neighbours. Context characters are not
+billed.
+
+`--instruction` passes a DeepL custom instruction such as "Keep character names
+untranslated". It can be repeated up to 10 times, each instruction at most 300
+characters. DeepL supports it only for target languages de, en, es, fr, it, ja,
+ko and zh; for any other target it is dropped with a warning. It cannot be
+combined with `--model-type latency_optimized`.
+
+```bash
+srtranslator ./file.srt -i en -o es -t deepl-api --auth YOUR_API_KEY \
+  --context "Sci-fi series, formal register" \
+  --instruction "Keep character names untranslated"
 ```

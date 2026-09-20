@@ -1,231 +1,136 @@
-# SRTranslator: Intelligent Context-Aware Subtitle Translation
+# Context-Aware Subtitle Translation (DeepL API)
 
-## Overview
+This is the single reference for how SRTranslator builds DeepL context. It replaces the
+former `LLM_SUBTRANS_CONTEXT.md` and `CONFIGURATION.md`, which described older budgets.
 
-SRTranslator now features **scene-aware bidirectional context** for optimal subtitle translation quality using the DeepL API.
+Everything here applies to the `deepl-api` translator. The scraper and DeepLX translators
+receive the same context string, but only the official API has a real `context` parameter.
 
-## Key Features Implemented
+## Why context matters
 
-### 1. **Automatic Scene Detection**
-- Analyzes subtitle timing to detect scene boundaries
-- Scenes are identified by gaps ≥2.0 seconds between subtitles
-- Prevents context from bleeding across unrelated scenes
+DeepL translates **each entry of the text list independently**. Entries in one request never
+see each other. The only thing they share is the `context` parameter. A subtitle chunk is a
+list of short lines, so without context a line like "He looked tired" has nothing to
+disambiguate it.
 
-### 2. **Bidirectional Context Window**
-For each subtitle chunk being translated, the system provides DeepL with:
+This is why the current chunk is **repeated inside** the context, alongside the lines around
+it. Context characters are not billed by DeepL, so there is no cost reason to keep it small.
 
-**Previous Dialogue (Backward Context):**
-- What was said earlier in the same scene
-- Up to 500 characters of prior conversation
+For Finnish this matters more than for most targets. "Hän" covers he and she, and only the
+surrounding dialogue reveals which person is meant.
 
-**Upcoming Dialogue (Forward Context):**
-- What will be said later in the same scene
-- Up to 500 characters of future conversation
+## What gets sent
 
-**Total Context:** Up to 1000 characters (500 backward + 500 forward)
+Built by `_build_deepl_context()` in `srtranslator/srt_file.py` and `ass_file.py`. Both
+copies are kept in step deliberately.
 
-### 3. **Why Bidirectional Context is Superior**
-
-#### Traditional Approach (Backward Only):
 ```
-Chunk 1: "John entered."
-Chunk 2: [Context: "John entered"] → Translating: "He looked tired"
+Scene 3
+
+Earlier in this scene:
+The detective arrived at the crime scene...
+The witness described a tall man...
+
+Previous dialogue:
+12. She looked worried.
+13. The meeting had gone badly.
+
+Current dialogue:
+14. He said nothing.
+15. Not a single word.
+
+Upcoming dialogue:
+16. John would have to fix this.
+17. There was no other choice.
 ```
-Problem: The translator doesn't know "he" refers to John until it's too late.
 
-#### Bidirectional Approach:
-```
-Chunk 2: 
-  [Previous: "John entered"]
-  [Upcoming: "His sister noticed. She asked him about work."]
-  → Translating: "He looked tired"
-```
-Result: The translator knows John is male, has a sister, and the topic is work-related.
+| Block | Source | Default budget |
+|---|---|---|
+| Earlier in this scene | Distant lines, truncated to 50 characters each | 2000 chars |
+| Previous dialogue | Lines before the chunk, walking backwards | 4000 chars |
+| Current dialogue | The chunk being translated | Bounded by `max_char` |
+| Upcoming dialogue | Lines after the chunk | 2000 chars |
 
-## Benefits for Finnish Translation
+Line numbers are the subtitle's own index, so they match the file.
 
-Finnish is particularly challenging for pronouns:
-- **"Hän"** = he/she (gender-neutral)
-- **"Se"** = it (can refer to people informally)
-- Context determines which to use and when
+## Rules the builder follows
 
-With bidirectional context:
-- Proper pronoun selection based on character introductions
-- Consistent tone within scenes
-- Better understanding of conversational flow
-- Contextually appropriate vocabulary choices
+- **Scenes are never crossed.** Boundaries come from timing gaps of 2.0 seconds or more,
+  detected by `_detect_scenes()`. Each scene starts fresh.
+- **Translated lines are never used as context.** On a `.tmp` resume the first lines of the
+  file already hold target-language text, so the backward walk stops at `self.start_from`.
+- **Placeholders are stripped.** The `////` dialog marker and the ASS line break
+  placeholder (four backslashes) are replaced by spaces via `clean_context_line()` in
+  `srtranslator/util.py`. Only the context copy is cleaned; the text actually sent for
+  translation keeps its placeholders so `wrap_lines` can restore them.
+- **The request body is kept under the limit.** DeepL rejects a body over 128 KiB.
+  `_context_for_chunk()` tries the budget tiers in `util.CONTEXT_BUDGETS` in order and takes
+  the first whose bytes fit under `MAX_REQUEST_BODY_BYTES` (120 000). Chunks are measured in
+  characters while the body is measured in bytes, and CJK text runs up to 3 bytes per
+  character, which is why the guard exists.
 
-## Usage Examples
+## Tuning
 
-### Basic Translation
+The budgets are function arguments, not CLI flags. Change the defaults in
+`_build_deepl_context()`, or the tier list in `srtranslator/util.py`.
+
+Scene gap is the one knob worth touching per content type. It is the
+`scene_gap_seconds` argument of `_detect_scenes()`.
+
+| Content | Value |
+|---|---|
+| Default, most material | 2.0 |
+| Fast-paced action | 1.5 |
+| Slow drama, more continuity | 3.0 |
+| Near-continuous dialogue | 4.0 |
+
+Hardcoded by design: the `{line_num}. {content}` line format, the block headings, and the
+50-character truncation in scene summaries.
+
+## CLI options
+
 ```bash
-python -m srtranslator movie.srt \
+srtranslator movie.srt \
   --translator deepl-api \
-  --auth "YOUR_API_KEY" \
-  --src-lang en \
-  --dest-lang fi \
-  --model-type quality_optimized
+  --auth "YOUR_KEY" \
+  --src-lang en --dest-lang fi \
+  --context "Television drama series. Natural conversational dialogue."
 ```
 
-### With Global Context + Scene Intelligence
+- `--context` adds a global description in front of the per-chunk context, joined by a blank
+  line. Give genre and tone, for example "Action thriller film. Dynamic and intense
+  dialogue." or "Historical drama set in 1920s. Formal period-appropriate language."
+- `--model-type` defaults to `quality_optimized`, DeepL's next-generation model, which has
+  covered every language pair since December 2025. Use `latency_optimized` for the faster
+  classic model. `prefer_quality_optimized` is a legacy alias of `quality_optimized`.
+- `--instruction` passes a DeepL custom instruction such as "Keep character names
+  untranslated". Repeatable up to 10 times, 300 characters each. DeepL supports it only for
+  target languages de, en, es, fr, it, ja, ko and zh; for any other target it is dropped with
+  a warning. It cannot be combined with `latency_optimized`.
+
+Do not use `--context` to give orders. DeepL states that context is reference material, not
+a system prompt. Rules and tone belong in `--instruction`.
+
+## Debugging
+
 ```bash
-python -m srtranslator series_episode.srt \
-  --translator deepl-api \
-  --auth "YOUR_API_KEY" \
-  --src-lang en \
-  --dest-lang fi \
-  --context "Crime drama series. Formal police dialogue." \
-  --model-type quality_optimized
+DEBUG_CONTEXT=1 srtranslator movie.srt --translator deepl-api --auth "KEY" -i en -o fi
 ```
 
-### Debug Mode (See What Context is Sent)
-```bash
-DEBUG_CONTEXT=1 python -m srtranslator movie.srt \
-  --translator deepl-api \
-  --auth "YOUR_API_KEY" \
-  --model-type quality_optimized
-```
+Prints the scene count, then per chunk the line range and the exact context string.
 
-## Combined Context Strategy
+What to check:
 
-The system intelligently combines:
+- The current chunk's lines **do** appear, under "Current dialogue". This is intended.
+- Line numbers are sequential and stay inside one scene.
+- No `////` or stray backslashes survive in the context.
+- On a resumed run, "Previous dialogue" holds no already-translated lines.
 
-1. **Global Context** (from `--context` argument)
-   - Sets overall tone and domain
-   - Example: "Medical drama series"
+## Billing
 
-2. **Scene Context** (automatic bidirectional)
-   - Previous dialogue in the scene
-   - Upcoming dialogue in the scene
+Only the `text` array is billed. Context is free, and so is a generous scene summary. The
+translator sums `billed_characters` across the run and logs the total at INFO level on exit,
+along with the `model_type_used` reported by the first response.
 
-**Result sent to DeepL:**
-```
-Global: "Medical drama series. Professional dialogue."
-Scene: [Previous: "Dr. Smith examined the patient."] 
-       [Upcoming: "The diagnosis was unclear. Tests were ordered."]
-→ Current text: "He looked concerned."
-```
-
-DeepL understands:
-- Medical setting (global)
-- "He" = Dr. Smith (previous context)
-- Concern relates to unclear diagnosis (forward context)
-- Professional tone required (global + scene)
-
-## Technical Implementation
-
-### Scene Detection Algorithm
-```python
-def _detect_scenes(self, scene_gap_seconds: float = 2.0):
-    # Analyzes subtitle timing
-    # Returns: List of scene start indices
-```
-
-### Context Extraction
-```python
-def _get_bidirectional_context(
-    chunk_start_idx, chunk_end_idx,
-    scene_start_idx, scene_end_idx,
-    max_context_chars=1000
-):
-    # Extracts surrounding dialogue within scene
-    # Returns: "[Previous: ...] [Upcoming: ...]"
-```
-
-### Scene Boundary Respect
-- Context **never crosses scene boundaries**
-- Each scene treated as independent conversation
-- Maintains narrative coherence
-
-## Quality Improvements
-
-Based on testing with Finnish translation:
-
-| Aspect | Without Context | With Bidirectional Context |
-|--------|----------------|---------------------------|
-| Pronoun Accuracy | ~70% | ~95% |
-| Tone Consistency | Variable | Consistent within scenes |
-| Contextual References | Often unclear | Properly resolved |
-| Character Names | Sometimes lost | Maintained throughout |
-
-## API Features Utilized
-
-### DeepL Free Tier Includes:
-✅ Context parameter (no extra cost)
-✅ Quality-optimized models (next-gen)
-✅ List-based translation (1:1 mapping)
-✅ Multiple language support
-
-### Model Selection
-- `latency_optimized` - Faster, classic models
-- `quality_optimized` - Slower, next-gen models (recommended)
-- `prefer_quality_optimized` - Best effort next-gen with fallback
-
-## Example Translation Flow
-
-**Original English Subtitles:**
-```
-1. Sarah walked into the room.
-2. She looked upset.
-3. John noticed immediately.
-4. He asked what was wrong.
-```
-
-**Context Provided to DeepL for Line 2:**
-```
-[Previous dialogue: Sarah walked into the room.]
-[Upcoming dialogue: John noticed immediately. He asked what was wrong.]
-→ Translating: "She looked upset."
-```
-
-**Finnish Translation:**
-```
-1. Sarah käveli huoneeseen.
-2. Hän näytti järkyttyneeltä.  # "Hän" correctly refers to Sarah
-3. John huomasi sen välittömästi.
-4. Hän kysyi, mikä oli vikana.   # "Hän" correctly refers to John
-```
-
-## Best Practices
-
-1. **Use meaningful global context:**
-   - Good: "Legal courtroom drama. Formal language."
-   - Bad: "Movie"
-
-2. **Let scene detection handle conversations:**
-   - The system automatically groups related dialogue
-   - No manual intervention needed
-
-3. **Enable debug mode for verification:**
-   - See exactly what context is being sent
-   - Verify scene detection is working correctly
-
-4. **Use quality-optimized models:**
-   - Better for English→Finnish
-   - Worth the slightly longer processing time
-
-## Cost Efficiency
-
-The context parameter is **free**:
-- Only the actual subtitle text counts toward billing
-- Context characters = 0 cost
-- Scene detection = 0 cost
-- You only pay for the lines being translated
-
-## Supported Formats
-
-- **SRT** (SubRip) - Full support
-- **ASS** (Advanced SubStation Alpha) - Full support
-- Both formats use identical bidirectional context logic
-
-## Future Enhancements
-
-Potential improvements:
-- Configurable scene gap threshold
-- Character name extraction for even better context
-- Genre-specific context templates
-- Multi-pass refinement for critical scenes
-
----
-
-**Result:** Production-quality Finnish subtitles with proper context awareness, natural dialogue flow, and accurate pronoun usage.
+One API call is made per chunk. Chunk size comes from `translator.max_char`, 1500 characters
+for DeepL. Context does not change the number of calls.

@@ -1,5 +1,10 @@
 # Test Report: Context-Aware Translation System
 
+> **Historical snapshot, 2025-11-27.** Kept as a record of that test run. The context
+> budgets and behaviour described here have since changed: the chunk being translated is now
+> repeated inside its own context, and the budgets are larger. For current behaviour see
+> [CONTEXT_TRANSLATION.md](CONTEXT_TRANSLATION.md).
+
 **Date:** 2025-11-27  
 **Test File:** test_sample.srt (150 lines from Bugonia.2025)  
 **Source Language:** English  

@@ -2,10 +2,20 @@ import os
 import re
 import pyass
 
-from typing import Generator
+from typing import Generator, List, Optional
 
 from .translators.base import Translator
-from .util import show_progress
+from .util import (
+    CONTEXT_BUDGETS,
+    MAX_REQUEST_BODY_BYTES,
+    clean_context_line,
+    show_progress,
+)
+
+# Translation engines drop a literal "\N", so it is swapped for a run of
+# backslashes that survives the round trip, padded so it never glues to a word.
+ASS_LINE_BREAK = "\\" * 4
+ASS_LINE_BREAK_PADDED = f" {ASS_LINE_BREAK} "
 
 
 class AssFile:
@@ -35,9 +45,7 @@ class AssFile:
             return
 
         print(f"Backup file found = {self.backup_file}")
-        with open(
-            self.backup_file, "r", encoding="utf-8", errors="ignore"
-        ) as input_file:
+        with open(self.backup_file, "r", encoding="utf-8", errors="ignore") as input_file:
             subtitles = self.load_from_file(input_file)
 
             self.start_from = len(subtitles.events)
@@ -120,14 +128,14 @@ class AssFile:
                 sub.text = sub.text.replace("\n", "////")
                 continue
 
-            # It looks like \N is removed by the translation so we replace them by \\\\
-            sub.text = sub.text.replace(r"\N", r"\\\\")
-
-            # The \\\\ must be separated from the words to avoid weird conversions
-            sub.text = re.sub(r"[aA0-zZ9]\\\\", r" \\\\", sub.text)
-            sub.text = re.sub(r"\\\\[aA0-zZ9]", r"\\\\ ", sub.text)
+            # Swap the ASS line break for a placeholder that survives
+            # translation. Any whitespace already around it is absorbed by the
+            # padding, and the neighbouring characters are left intact.
+            # A lambda replacement avoids backslash escaping in re.sub.
+            sub.text = re.sub(r"\s*\\N\s*", lambda _: ASS_LINE_BREAK_PADDED, sub.text)
 
             sub.text = sub.text.replace("\n", " ")
+            sub.text = re.sub(r" {2,}", " ", sub.text).strip()
 
         return subtitles
 
@@ -139,7 +147,10 @@ class AssFile:
         """
         for sub in self.subtitles.events:
             sub.text = sub.text.replace("////", "\n")
-            sub.text = sub.text.replace(r" \\\\ ", r"\N")
+            # Restore ASS line breaks. Translation can change the number of
+            # backslashes and the spacing around them, so accept any run of two
+            # or more. A lone backslash is left alone, it may be real dialogue.
+            sub.text = re.sub(r"\s*\\{2,}\s*", lambda _: r"\N", sub.text)
 
     def _detect_scenes(self, scene_gap_seconds: float = 2.0):
         """Detect scene boundaries based on time gaps between subtitles."""
@@ -163,35 +174,61 @@ class AssFile:
         chunk_end_idx: int,
         scene_start_idx: int,
         scene_end_idx: int,
-        max_history_chars_before: int = 2000,
-        max_history_chars_after: int = 1000,
+        chunk_lines: Optional[List[str]] = None,
+        max_history_chars_before: int = 4000,
+        max_history_chars_after: int = 2000,
         max_summary_chars: int = 2000,
-    ):
-        """Build DeepL context parameter (llm-subtrans style)."""
-        # Build history_before
+    ) -> Optional[str]:
+        """Build the DeepL context parameter for one chunk.
+
+        DeepL translates every entry of a text list independently, so entries
+        never see each other. Only `context` is shared. The current chunk is
+        therefore repeated here, alongside the surrounding dialogue, all in the
+        source language. Context is not billed.
+
+        Args:
+            scene_index: Current scene number
+            chunk_start_idx: First subtitle index in current chunk
+            chunk_end_idx: Last subtitle index in current chunk
+            scene_start_idx: First subtitle index in current scene
+            scene_end_idx: Last subtitle index in current scene
+            chunk_lines: Source lines of the current chunk
+            max_history_chars_before: Max chars for previous dialogue
+            max_history_chars_after: Max chars for upcoming dialogue
+            max_summary_chars: Max chars for distant scene summary
+
+        Returns:
+            str: Formatted context string for DeepL, or None when empty
+        """
+        # Never use already translated lines (restored from a .tmp backup) as
+        # source-language context.
+        history_floor = max(scene_start_idx, self.start_from)
+
+        # Build history_before: walk backwards from chunk_start_idx - 1
         history_before_lines = []
         current_before_chars = 0
 
-        for i in range(chunk_start_idx - 1, scene_start_idx - 1, -1):
-            line_content = self.subtitles.events[i].text.strip()
+        for i in range(chunk_start_idx - 1, history_floor - 1, -1):
+            line_content = clean_context_line(self.subtitles.events[i].text)
             if not line_content or line_content == "...":
                 continue
 
+            # Format: "line_num. content"
             formatted_line = f"{i + 1}. {line_content}"
-            line_length = len(formatted_line) + 1
+            line_length = len(formatted_line) + 1  # +1 for newline
 
             if current_before_chars + line_length > max_history_chars_before:
                 break
 
-            history_before_lines.insert(0, formatted_line)
+            history_before_lines.insert(0, formatted_line)  # Prepend to keep chronological
             current_before_chars += line_length
 
-        # Build history_after
+        # Build history_after: walk forwards from chunk_end_idx + 1
         history_after_lines = []
         current_after_chars = 0
 
         for i in range(chunk_end_idx + 1, scene_end_idx + 1):
-            line_content = self.subtitles.events[i].text.strip()
+            line_content = clean_context_line(self.subtitles.events[i].text)
             if not line_content or line_content == "...":
                 continue
 
@@ -204,20 +241,18 @@ class AssFile:
             history_after_lines.append(formatted_line)
             current_after_chars += line_length
 
-        # Build scene summary for distant history
+        # Optional: Build scene summary for very distant history
         scene_summary_lines = []
-        if chunk_start_idx - scene_start_idx > len(history_before_lines) + 5:
+        if max_summary_chars and chunk_start_idx - history_floor > len(history_before_lines) + 5:
+            # There's distant history not captured in history_before
             summary_chars = 0
-            for i in range(
-                scene_start_idx, chunk_start_idx - len(history_before_lines)
-            ):
-                line_content = self.subtitles.events[i].text.strip()
+            for i in range(history_floor, chunk_start_idx - len(history_before_lines)):
+                line_content = clean_context_line(self.subtitles.events[i].text)
                 if not line_content or line_content == "...":
                     continue
 
-                truncated = line_content[:50] + (
-                    "..." if len(line_content) > 50 else ""
-                )
+                # Truncate each line for summary (first 50 chars)
+                truncated = line_content[:50] + ("..." if len(line_content) > 50 else "")
                 summary_chars += len(truncated) + 1
 
                 if summary_chars > max_summary_chars:
@@ -225,23 +260,72 @@ class AssFile:
 
                 scene_summary_lines.append(truncated)
 
+        # Lines of the current chunk, so each independently translated entry
+        # can see the rest of its own chunk.
+        current_lines = []
+        for offset, line in enumerate(chunk_lines or []):
+            line_content = clean_context_line(line)
+            if not line_content or line_content == "...":
+                continue
+            current_lines.append(f"{chunk_start_idx + offset + 1}. {line_content}")
+
         # Compose final context string
         context_parts = []
         context_parts.append(f"Scene {scene_index + 1}")
 
+        # Add distant summary if available
         if scene_summary_lines:
             context_parts.append("\nEarlier in this scene:")
             context_parts.append("\n".join(scene_summary_lines))
 
+        # Add previous dialogue
         if history_before_lines:
             context_parts.append("\nPrevious dialogue:")
             context_parts.append("\n".join(history_before_lines))
 
+        # Add the chunk being translated
+        if current_lines:
+            context_parts.append("\nCurrent dialogue:")
+            context_parts.append("\n".join(current_lines))
+
+        # Add upcoming dialogue
         if history_after_lines:
             context_parts.append("\nUpcoming dialogue:")
             context_parts.append("\n".join(history_after_lines))
 
         return "\n".join(context_parts) if len(context_parts) > 1 else None
+
+    def _context_for_chunk(
+        self,
+        scene_index: int,
+        chunk_start_idx: int,
+        chunk_end_idx: int,
+        scene_start_idx: int,
+        scene_end_idx: int,
+        chunk_lines: List[str],
+    ) -> Optional[str]:
+        """Build context, shrinking it until the request body fits."""
+        text_bytes = sum(len(line.encode("utf-8")) for line in chunk_lines)
+
+        context = None
+        for before, after, summary in CONTEXT_BUDGETS:
+            context = self._build_deepl_context(
+                scene_index,
+                chunk_start_idx,
+                chunk_end_idx,
+                scene_start_idx,
+                scene_end_idx,
+                chunk_lines,
+                before,
+                after,
+                summary,
+            )
+            if context is None:
+                return None
+            if text_bytes + len(context.encode("utf-8")) <= MAX_REQUEST_BODY_BYTES:
+                return context
+
+        return context
 
     def translate(
         self,
@@ -291,25 +375,21 @@ class AssFile:
             # Build text array (only lines to translate)
             text = [sub.text for sub in subs_slice]
 
-            # Build DeepL context (surrounding lines, NOT current chunk)
-            current_context = self._build_deepl_context(
+            # Build DeepL context (surrounding lines plus the current chunk)
+            current_context = self._context_for_chunk(
                 scene_idx,
                 chunk_start_idx,
                 chunk_end_idx,
                 scene_start_idx,
                 scene_end_idx,
+                text,
             )
 
-            if os.environ.get("DEBUG_CONTEXT"):
-                if current_context:
-                    print(f"\n{'=' * 60}")
-                    print(
-                        f"[Chunk {chunk_num}] Lines {chunk_start_idx + 1}-{chunk_end_idx + 1}"
-                    )
-                    print(f"Context:\n{current_context}")
-                    print(f"{'=' * 60}")
-                else:
-                    print(f"\n[Chunk {chunk_num}] No context (start of scene)")
+            if os.environ.get("DEBUG_CONTEXT") and current_context:
+                print(f"\n{'=' * 60}")
+                print(f"[Chunk {chunk_num}] Lines {chunk_start_idx + 1}-{chunk_end_idx + 1}")
+                print(f"Context:\n{current_context}")
+                print(f"{'=' * 60}")
 
             # Translate with context
             translation = translator.translate(
@@ -341,9 +421,7 @@ class AssFile:
                 subs_slice[i].text = translation[i]
                 self.current_subtitle += 1
 
-            self.progress_callback(
-                len(self.subtitles.events), progress=self.current_subtitle
-            )
+            self.progress_callback(len(self.subtitles.events), progress=self.current_subtitle)
 
         print("... Translation done")
 
